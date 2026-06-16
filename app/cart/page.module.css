@@ -1,0 +1,12 @@
+.page {
+  width: 100%;
+  background: rgba(255, 255, 255, 1);
+}
+
+.page :global(.bg-card) {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.page :global(.bg-card:hover) {
+  box-shadow: 0 12px 32px rgba(53, 106, 176, 0.12);
+}

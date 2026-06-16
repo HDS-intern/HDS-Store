@@ -1,0 +1,12 @@
+.page {
+  width: 100%;
+  background: rgba(255, 255, 255, 1);
+}
+
+.page :global(.sticky) {
+  transition: box-shadow 0.3s ease;
+}
+
+.page :global(button:hover) {
+  transition: background 0.25s ease, transform 0.2s ease;
+}

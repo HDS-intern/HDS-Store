@@ -1,8 +1,8 @@
 const GREETING =
-  'Hello! I am the HDS assistant. Ask me about orders, shipping, warranty, returns, bulk orders, or how to reach our team.'
+  'Hello! I am the HDS AI assistant. Ask me about products, orders, shipping, warranty, or returns. For a real person, tap **Live Support** or **Connect to Live Support** above.'
 
 const FALLBACK =
-  'I can help with orders, shipping, warranty, returns, payments, and contact details. For complex issues, switch to **Live Support** and our team will reply shortly. You can also email info@hds-india.com or call +91-99401-99407.'
+  'I can help with orders, shipping, warranty, returns, payments, and contact details. For personal help, switch to **Live Support** in this chat and our team will reply here. You can also email info@hds-india.com or call +91-99401-99407.'
 
 type BotRule = {
   keywords: string[]
@@ -41,9 +41,14 @@ const RULES: BotRule[] = [
       'Use the **Bulk Order Sheet** page to upload a template with model numbers and quantities. Our team will confirm stock and pricing.',
   },
   {
-    keywords: ['contact', 'phone', 'email', 'call', 'support', 'human', 'agent'],
+    keywords: ['live support', 'live chat', 'talk to', 'speak to', 'representative'],
     reply:
-      'Reach HDS at **info@hds-india.com** or **+91-99401-99407**. For live help, switch to the **Live Support** tab in this chat.',
+      'Tap **Connect to Live Support** above, or switch to the **Live Support** tab. Our team will reply in this same chat window.',
+  },
+  {
+    keywords: ['contact', 'phone', 'email', 'call', 'support', 'human', 'agent', 'live'],
+    reply:
+      'Reach HDS at **info@hds-india.com** or **+91-99401-99407**. For live help, tap **Live Support** at the top of this chat — our team will reply right here.',
   },
   {
     keywords: ['address', 'location', 'office'],

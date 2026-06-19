@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Bot, MessageCircle, Send, UserRound, X } from 'lucide-react'
+import { Bot, Headphones, MessageCircle, Send, UserRound, X } from 'lucide-react'
 import { useApp } from '@/lib/context'
 import { apiFetch } from '@/lib/api'
 import type { ChatChannel, ChatMessage } from '@/lib/chatTypes'
@@ -19,11 +19,14 @@ function formatTime(value: string) {
   })
 }
 
-function senderLabel(sender: ChatMessage['sender']) {
-  if (sender === 'bot') return 'HDS Assistant'
-  if (sender === 'staff') return 'Support Team'
-  return 'You'
+function senderLabel(sender: ChatMessage['sender'], channel: ChatChannel) {
+  if (sender === 'bot') return 'HDS AI Assistant'
+  if (sender === 'staff') return 'Live Support'
+  return channel === 'support' ? 'You' : 'You'
 }
+
+const LIVE_SUPPORT_HINT =
+  'Need a real person? Switch to Live Support and our team will reply here.'
 
 export function CustomerChatWidget() {
   const pathname = usePathname()
@@ -38,44 +41,60 @@ export function CustomerChatWidget() {
   const [notice, setNotice] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const isCustomer = user?.role === 'customer'
-  const hiddenRoute = pathname.startsWith('/admin') || pathname.startsWith('/login') || pathname.startsWith('/register')
+  const isStaffOrAdmin = user?.role === 'admin' || user?.role === 'staff'
+  const isGuest = !user
+  const hiddenRoute =
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register')
+
+  const canUseChat = !authLoading && !isStaffOrAdmin && !hiddenRoute
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  const loadMessages = useCallback(async (silent = false) => {
-    if (!isCustomer) return
-    if (!silent) setLoading(true)
-    try {
-      const data = await apiFetch<{ messages: ChatMessage[]; unreadSupport: number }>(
-        `/api/chat?channel=${channel}`
-      )
-      setMessages(data.messages)
-      setUnreadSupport(data.unreadSupport)
-      if (channel === 'support' && open) {
-        setUnreadSupport(0)
+  const loadMessages = useCallback(
+    async (silent = false) => {
+      if (!canUseChat) return
+      if (!silent) setLoading(true)
+      try {
+        const data = await apiFetch<{ messages: ChatMessage[]; unreadSupport: number }>(
+          `/api/chat?channel=${channel}`
+        )
+        setMessages(data.messages)
+        if (channel === 'support' && open) {
+          setUnreadSupport(0)
+        } else if (channel === 'bot') {
+          setUnreadSupport(data.unreadSupport)
+        }
+      } catch {
+        if (!silent) setMessages([])
+      } finally {
+        if (!silent) setLoading(false)
       }
-    } catch {
-      if (!silent) setMessages([])
-    } finally {
-      if (!silent) setLoading(false)
-    }
-  }, [channel, isCustomer, open])
+    },
+    [canUseChat, channel, open]
+  )
+
+  const switchToLiveSupport = useCallback(() => {
+    setChannel('support')
+    setNotice(null)
+    setUnreadSupport(0)
+  }, [])
 
   useEffect(() => {
-    if (!open || !isCustomer) return
+    if (!open || !canUseChat) return
     void loadMessages()
-  }, [open, isCustomer, channel, loadMessages])
+  }, [open, canUseChat, channel, loadMessages])
 
   useEffect(() => {
-    if (!open || !isCustomer || channel !== 'support') return
+    if (!open || !canUseChat || channel !== 'support') return
     const timer = window.setInterval(() => {
       void loadMessages(true)
     }, 5000)
     return () => window.clearInterval(timer)
-  }, [open, isCustomer, channel, loadMessages])
+  }, [open, canUseChat, channel, loadMessages])
 
   useEffect(() => {
     if (!open) return
@@ -83,7 +102,7 @@ export function CustomerChatWidget() {
   }, [messages, open, scrollToBottom])
 
   useEffect(() => {
-    if (!isCustomer || hiddenRoute) return
+    if (!canUseChat) return
 
     const pollUnread = async () => {
       try {
@@ -101,7 +120,7 @@ export function CustomerChatWidget() {
     void pollUnread()
     const timer = window.setInterval(pollUnread, 8000)
     return () => window.clearInterval(timer)
-  }, [isCustomer, hiddenRoute, open, channel])
+  }, [canUseChat, open, channel])
 
   const sendMessage = async () => {
     const text = draft.trim()
@@ -120,6 +139,11 @@ export function CustomerChatWidget() {
       setMessages((prev) => [...prev, ...data.messages])
       setDraft('')
       if (data.notice) setNotice(data.notice)
+
+      const wantsHuman = /live support|human|agent|real person|talk to someone/i.test(text)
+      if (channel === 'bot' && wantsHuman) {
+        setNotice('You can connect with our team using Live Support above.')
+      }
     } catch {
       setNotice('Unable to send message. Please try again.')
     } finally {
@@ -127,19 +151,23 @@ export function CustomerChatWidget() {
     }
   }
 
-  if (authLoading || !isCustomer || hiddenRoute) return null
+  if (!canUseChat) return null
 
   const showBadge = unreadSupport > 0 && !open
 
   return (
     <div className={styles.customerChatWrap} aria-live="polite">
       {open && (
-        <div className={styles.panel} role="dialog" aria-label="Customer chat">
+        <div className={styles.panel} role="dialog" aria-label="HDS chat assistant">
           <div className={styles.header}>
             <div>
-              <h2 className={styles.headerTitle}>HDS Chat</h2>
+              <h2 className={styles.headerTitle}>HDS Assistant</h2>
               <p className={styles.headerSub}>
-                {channel === 'bot' ? 'Instant answers from our assistant' : 'Chat with our support team'}
+                {channel === 'bot'
+                  ? isGuest
+                    ? 'AI help + live support — no login required'
+                    : 'AI answers instantly, or chat with our team'
+                  : 'Live support — our team replies here'}
               </p>
             </div>
             <button
@@ -162,24 +190,38 @@ export function CustomerChatWidget() {
               }}
             >
               <Bot className="w-4 h-4" />
-              Chatbot
+              AI Assistant
             </button>
             <button
               type="button"
               className={channel === 'support' ? styles.tabActive : styles.tab}
-              onClick={() => {
-                setChannel('support')
-                setNotice(null)
-                setUnreadSupport(0)
-              }}
+              onClick={switchToLiveSupport}
             >
               <UserRound className="w-4 h-4" />
               Live Support
+              {unreadSupport > 0 && channel !== 'support' && (
+                <span className={styles.tabBadge}>{unreadSupport > 9 ? '9+' : unreadSupport}</span>
+              )}
             </button>
           </div>
 
+          {channel === 'bot' && (
+            <div className={styles.liveSupportBanner}>
+              <p className={styles.liveSupportText}>{LIVE_SUPPORT_HINT}</p>
+              <button type="button" className={styles.liveSupportBtn} onClick={switchToLiveSupport}>
+                <Headphones className="w-4 h-4" />
+                Connect to Live Support
+              </button>
+            </div>
+          )}
+
           <div className={styles.messages}>
             {loading && <p className={styles.notice}>Loading conversation...</p>}
+            {!loading && messages.length === 0 && channel === 'support' && (
+              <p className={styles.notice}>
+                Send a message and our support team will respond shortly during business hours.
+              </p>
+            )}
             {!loading &&
               messages.map((message) => (
                 <div
@@ -203,7 +245,7 @@ export function CustomerChatWidget() {
                   >
                     {formatBody(message.body)}
                     <span className={styles.meta}>
-                      {senderLabel(message.sender)} · {formatTime(message.createdAt)}
+                      {senderLabel(message.sender, channel)} · {formatTime(message.createdAt)}
                     </span>
                   </div>
                 </div>
@@ -217,7 +259,9 @@ export function CustomerChatWidget() {
               className={styles.input}
               rows={1}
               placeholder={
-                channel === 'bot' ? 'Ask about orders, shipping, warranty...' : 'Message support team...'
+                channel === 'bot'
+                  ? 'Ask the AI about orders, shipping, warranty...'
+                  : 'Message our live support team...'
               }
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -244,11 +288,8 @@ export function CustomerChatWidget() {
       <button
         type="button"
         className={`${styles.launcher} ${open ? styles.launcherOpen : ''}`}
-        onClick={() => {
-          setOpen((prev) => !prev)
-          if (!open) setUnreadSupport(0)
-        }}
-        aria-label={open ? 'Close chat' : 'Open chat'}
+        onClick={() => setOpen((prev) => !prev)}
+        aria-label={open ? 'Close chat' : 'Open HDS assistant'}
         aria-expanded={open}
       >
         {!open && <span className={styles.launcherRing} aria-hidden="true" />}

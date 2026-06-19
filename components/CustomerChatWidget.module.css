@@ -165,6 +165,67 @@
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
+.tabBadge {
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  line-height: 1rem;
+}
+
+.liveSupportBanner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  background: linear-gradient(90deg, rgba(53, 106, 176, 0.1), rgba(34, 197, 94, 0.08));
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.liveSupportText {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: #475569;
+}
+
+.liveSupportBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 0.625rem;
+  background: linear-gradient(135deg, #059669, #047857);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  animation: supportGlow 2.5s ease-in-out infinite;
+}
+
+.liveSupportBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
+}
+
+@keyframes supportGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+}
+
 .messages {
   flex: 1;
   min-height: 0;

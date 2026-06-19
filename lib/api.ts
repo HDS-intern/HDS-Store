@@ -1,8 +1,19 @@
 const TOKEN_KEY = 'hds_session_token'
+const GUEST_CHAT_KEY = 'hds_guest_chat_id'
 
 export function getStoredToken(): string | null {
   if (typeof window === 'undefined') return null
   return localStorage.getItem(TOKEN_KEY)
+}
+
+export function getGuestChatId(): string {
+  if (typeof window === 'undefined') return ''
+  let id = localStorage.getItem(GUEST_CHAT_KEY)
+  if (!id) {
+    id = `guest-${crypto.randomUUID()}`
+    localStorage.setItem(GUEST_CHAT_KEY, id)
+  }
+  return id
 }
 
 export function setStoredToken(token: string | null) {
@@ -19,6 +30,11 @@ export async function apiFetch<T>(url: string, options: RequestInit = {}): Promi
   }
   if (token) {
     ;(headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
+  } else {
+    const guestId = getGuestChatId()
+    if (guestId) {
+      ;(headers as Record<string, string>)['x-guest-chat-id'] = guestId
+    }
   }
 
   const res = await fetch(url, { ...options, headers })

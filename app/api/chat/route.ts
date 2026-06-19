@@ -1,23 +1,34 @@
 import { NextResponse } from 'next/server'
-import { getUserBySession, getTokenFromRequest, requireRole } from '@/lib/auth'
+import { getUserBySession, getTokenFromRequest } from '@/lib/auth'
 import {
   countUnreadSupportForCustomer,
   insertChatMessage,
   listChatMessages,
   markSupportMessagesRead,
 } from '@/lib/customerChat'
+import { ensureGuestChatUser, normalizeGuestChatId } from '@/lib/guestChat'
 import { getBotGreeting, getBotReply } from '@/lib/chatbot'
 import type { ChatChannel } from '@/lib/chatTypes'
 
 export const runtime = 'nodejs'
 
-function assertCustomer(request: Request) {
-  return requireRole(getUserBySession(getTokenFromRequest(request)), ['customer'])
+function resolveChatUserId(request: Request): string {
+  const sessionUser = getUserBySession(getTokenFromRequest(request))
+  if (sessionUser?.role === 'customer') {
+    return sessionUser.id
+  }
+
+  const guestId = normalizeGuestChatId(request.headers.get('x-guest-chat-id') ?? '')
+  if (guestId) {
+    return ensureGuestChatUser(guestId)
+  }
+
+  throw new Error('Unauthorized')
 }
 
 export async function GET(request: Request) {
   try {
-    const user = assertCustomer(request)
+    const userId = resolveChatUserId(request)
     const { searchParams } = new URL(request.url)
     const channel = (searchParams.get('channel') || 'bot') as ChatChannel
 
@@ -26,14 +37,14 @@ export async function GET(request: Request) {
     }
 
     if (searchParams.get('countOnly') === '1' && channel === 'support') {
-      return NextResponse.json({ unreadSupport: countUnreadSupportForCustomer(user.id) })
+      return NextResponse.json({ unreadSupport: countUnreadSupportForCustomer(userId) })
     }
 
-    let messages = listChatMessages(user.id, channel)
+    let messages = listChatMessages(userId, channel)
 
     if (channel === 'bot' && messages.length === 0) {
       const greeting = insertChatMessage({
-        userId: user.id,
+        userId,
         channel: 'bot',
         sender: 'bot',
         body: getBotGreeting(),
@@ -42,10 +53,10 @@ export async function GET(request: Request) {
     }
 
     if (channel === 'support') {
-      markSupportMessagesRead(user.id, 'customer')
+      markSupportMessagesRead(userId, 'customer')
     }
 
-    const unreadSupport = countUnreadSupportForCustomer(user.id)
+    const unreadSupport = countUnreadSupportForCustomer(userId)
 
     return NextResponse.json({ messages, unreadSupport })
   } catch (e) {
@@ -56,7 +67,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const user = assertCustomer(request)
+    const userId = resolveChatUserId(request)
     const { channel, message } = await request.json()
     const chatChannel = channel as ChatChannel
 
@@ -70,7 +81,7 @@ export async function POST(request: Request) {
     }
 
     const customerMessage = insertChatMessage({
-      userId: user.id,
+      userId,
       channel: chatChannel,
       sender: 'customer',
       body,
@@ -78,7 +89,7 @@ export async function POST(request: Request) {
 
     if (chatChannel === 'bot') {
       const reply = insertChatMessage({
-        userId: user.id,
+        userId,
         channel: 'bot',
         sender: 'bot',
         body: getBotReply(body),

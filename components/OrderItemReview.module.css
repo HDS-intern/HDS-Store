@@ -1,0 +1,12 @@
+.wrap {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed rgba(53, 106, 176, 0.15);
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: rgba(53, 106, 176, 1);
+  margin: 0 0 0.5rem;
+}

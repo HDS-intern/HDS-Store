@@ -10,3 +10,296 @@
 .page :global(button:hover) {
   transition: background 0.25s ease, transform 0.2s ease;
 }
+
+.reviewBlock {
+  margin-top: 0.5rem;
+}
+
+.reviewToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0;
+  border: none;
+  background: transparent;
+  color: rgba(53, 106, 176, 1);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reviewToggle:hover {
+  color: rgba(41, 84, 140, 1);
+}
+
+.downloadInvoiceBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(53, 106, 176, 1);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.downloadInvoiceBtn:hover {
+  color: rgba(41, 84, 140, 1);
+}
+
+.orderIdRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.trackBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(53, 106, 176, 0.35);
+  border-radius: 9999px;
+  background: rgba(53, 106, 176, 0.08);
+  color: rgba(53, 106, 176, 1);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+}
+
+.trackBtn:hover {
+  background: rgba(53, 106, 176, 0.16);
+  border-color: rgba(53, 106, 176, 0.55);
+  transform: translateY(-1px);
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 22rem;
+  padding: 1.5rem;
+  border-radius: 0.875rem;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.modalClose {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.modalClose:hover {
+  background: #f1f5f9;
+}
+
+.modalTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.5rem;
+}
+
+.modalText {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
+}
+
+.modalOkBtn {
+  padding: 0.5rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: rgba(53, 106, 176, 1);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modalOkBtn:hover {
+  background: rgba(41, 84, 140, 1);
+}
+
+.settingsCard {
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.settingsSectionTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 1rem;
+}
+
+.settingsDivider {
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.fieldInput {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.9375rem;
+}
+
+.fieldInput:focus {
+  outline: none;
+  border-color: rgba(53, 106, 176, 1);
+  box-shadow: 0 0 0 3px rgba(53, 106, 176, 0.15);
+}
+
+.addressCard {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: #f8fafc;
+}
+
+.addressCardTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: rgba(53, 106, 176, 1);
+}
+
+.addAddressBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid rgba(53, 106, 176, 0.35);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: rgba(53, 106, 176, 1);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.addAddressBtn:hover {
+  background: rgba(53, 106, 176, 0.08);
+}
+
+.removeAddressBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border: none;
+  background: transparent;
+  color: #ef4444;
+  cursor: pointer;
+}
+
+.removeAddressBtn:hover {
+  color: #dc2626;
+}
+
+.settingsError {
+  font-size: 0.875rem;
+  color: #dc2626;
+  margin: 0;
+}
+
+.settingsSuccess {
+  font-size: 0.875rem;
+  color: #16a34a;
+  margin: 0;
+}
+
+.saveProfileBtn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: linear-gradient(to right, rgba(53, 106, 176, 1), rgba(41, 84, 140, 1));
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.saveProfileBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.settingsHint {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.termsDownloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(53, 106, 176, 0.35);
+  background: rgba(53, 106, 176, 0.08);
+  color: rgba(41, 84, 140, 1);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.termsDownloadBtn:hover:not(:disabled) {
+  background: rgba(53, 106, 176, 0.14);
+  border-color: rgba(53, 106, 176, 0.5);
+}
+
+.termsDownloadBtn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}

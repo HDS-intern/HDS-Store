@@ -7,11 +7,12 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { FilterSidebar, FilterState } from '@/components/FilterSidebar'
 import { ProductCard } from '@/components/ProductCard'
-import { PRODUCTS } from '@/lib/mockData'
+import { useApp } from '@/lib/context'
 import { ChevronRight, LayoutGrid, List } from 'lucide-react'
 import styles from './page.module.css'
 
 export default function ShopPage() {
+  const { products } = useApp()
   const [filters, setFilters] = useState<FilterState>({
     categories: [],
     priceRange: [0, 999999],
@@ -23,7 +24,7 @@ export default function ShopPage() {
   const [searchInput, setSearchInput] = useState('')
 
   const filteredProducts = useMemo(() => {
-    let result = PRODUCTS
+    let result = products
 
     // Filter by search
     if (searchInput) {
@@ -79,7 +80,7 @@ export default function ShopPage() {
     }
 
     return result
-  }, [filters, searchInput])
+  }, [filters, searchInput, products])
 
   return (
     <div className={`${styles.page} flex flex-col min-h-screen bg-background`}>

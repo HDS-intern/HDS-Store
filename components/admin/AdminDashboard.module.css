@@ -1,0 +1,349 @@
+.panel {
+  background: #1e293b;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 0.875rem;
+  padding: 1.25rem;
+}
+
+.panelTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin-bottom: 1rem;
+}
+
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  height: 12rem;
+  padding-top: 1rem;
+}
+
+.barWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.bar {
+  width: 100%;
+  max-width: 2.5rem;
+  border-radius: 0.375rem 0.375rem 0 0;
+  background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+  min-height: 4px;
+  transition: height 0.5s ease;
+}
+
+.barLabel {
+  font-size: 0.625rem;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.barValue {
+  font-size: 0.6875rem;
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .statGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.statCard {
+  background: #1e293b;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 0.875rem;
+  padding: 1rem 1.25rem;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .dashboardGrid {
+    grid-template-columns: 1.4fr 1fr;
+  }
+}
+
+.attRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  font-size: 0.875rem;
+}
+
+.attName {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.attMeta {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.badgePresent {
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.badgeAbsent {
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.pageHeading {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #f8fafc;
+  margin-bottom: 1.25rem;
+}
+
+.emptyText {
+  color: #64748b;
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.bulkPanel {
+  margin-top: 1.25rem;
+  background: #1e293b;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 0.875rem;
+  padding: 1.25rem;
+}
+
+.bulkHint {
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.bulkHint strong {
+  color: #cbd5e1;
+}
+
+.bulkActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+}
+
+.bulkBtnPrimary,
+.bulkBtnOutline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: opacity 0.2s ease;
+}
+
+.bulkBtnPrimary {
+  background: rgba(53, 106, 176, 1);
+  color: #fff;
+}
+
+.bulkBtnPrimary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.bulkBtnOutline {
+  background: #0f172a;
+  color: #93c5fd;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.bulkBtnPrimary:hover:not(:disabled),
+.bulkBtnOutline:hover {
+  opacity: 0.9;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.bulkHintInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  padding: 0.5rem 0;
+}
+
+.warrantyPanel {
+  margin-top: 1.25rem;
+}
+
+.warrantyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.refreshBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: #0f172a;
+  color: #93c5fd;
+  cursor: pointer;
+}
+
+.refreshBtn:hover {
+  opacity: 0.9;
+}
+
+.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.warrantyTableWrap {
+  overflow-x: auto;
+}
+
+.warrantyTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.warrantyTable th,
+.warrantyTable td {
+  padding: 0.75rem 0.625rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  text-align: left;
+  vertical-align: top;
+}
+
+.warrantyTable th {
+  color: #94a3b8;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.warrantyTable td {
+  color: #e2e8f0;
+}
+
+.claimCustomer {
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.claimMeta {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.claimNotes {
+  max-width: 18rem;
+  white-space: pre-wrap;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+.docActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 8rem;
+}
+
+.docBtn,
+.docBtnOutline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.4375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.docBtn {
+  border: none;
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+
+.docBtnOutline {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: #0f172a;
+  color: #cbd5e1;
+  word-break: break-all;
+}
+
+.docBtn:hover,
+.docBtnOutline:hover {
+  opacity: 0.9;
+}

@@ -3,10 +3,318 @@
   background: rgba(255, 255, 255, 1);
 }
 
-.page :global(.bg-card) {
-  transition: box-shadow 0.3s ease;
+.tabBar {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(53, 106, 176, 0.15);
+  margin-bottom: 2rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
-.page :global(button:hover) {
-  transition: transform 0.2s ease, box-shadow 0.3s ease;
+.tabBar::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex-shrink: 0;
+  padding: 0.875rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: rgba(53, 106, 176, 0.6);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+.tab:hover {
+  color: rgba(53, 106, 176, 1);
+}
+
+.tabActive {
+  color: rgba(53, 106, 176, 1);
+  border-bottom-color: rgba(53, 106, 176, 1);
+}
+
+.sectionTitle {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: rgba(53, 106, 176, 1);
+  margin-bottom: 1.25rem;
+}
+
+.specTable {
+  border-radius: 0.875rem;
+  border: 1px solid rgba(53, 106, 176, 0.12);
+  overflow: hidden;
+}
+
+.specRow {
+  display: flex;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid rgba(53, 106, 176, 0.08);
+}
+
+.specRow:last-child {
+  border-bottom: none;
+}
+
+.specRow:nth-child(even) {
+  background: rgba(53, 106, 176, 0.03);
+}
+
+.specKey {
+  font-weight: 600;
+  color: rgba(53, 106, 176, 1);
+  width: 40%;
+  flex-shrink: 0;
+}
+
+.specValue {
+  color: rgba(53, 106, 176, 0.75);
+}
+
+.featureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+}
+
+.featureCheck {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: rgba(53, 106, 176, 1);
+  margin-top: 0.125rem;
+}
+
+.reviewCard {
+  padding: 1.25rem;
+  border-radius: 0.875rem;
+  border: 1px solid rgba(53, 106, 176, 0.12);
+  background: rgba(255, 255, 255, 1);
+  margin-bottom: 1rem;
+}
+
+.reviewHeader {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.reviewAuthor {
+  font-weight: 700;
+  color: rgba(53, 106, 176, 1);
+}
+
+.reviewDate {
+  font-size: 0.8125rem;
+  color: rgba(53, 106, 176, 0.5);
+}
+
+.reviewTitle {
+  font-weight: 600;
+  color: rgba(53, 106, 176, 0.9);
+  margin-bottom: 0.375rem;
+}
+
+.reviewComment {
+  font-size: 0.9375rem;
+  color: rgba(53, 106, 176, 0.7);
+  line-height: 1.6;
+}
+
+.verifiedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.1);
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  margin-left: 0.5rem;
+}
+
+.ratingSummary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 0.875rem;
+  background: rgba(53, 106, 176, 0.04);
+  border: 1px solid rgba(53, 106, 176, 0.12);
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .ratingSummary {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+}
+
+.ratingBig {
+  font-size: 3rem;
+  font-weight: 800;
+  color: rgba(53, 106, 176, 1);
+  line-height: 1;
+}
+
+.ratingBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  color: rgba(53, 106, 176, 0.65);
+  margin-bottom: 0.375rem;
+}
+
+.ratingBarTrack {
+  flex: 1;
+  height: 0.5rem;
+  background: rgba(53, 106, 176, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.ratingBarFill {
+  height: 100%;
+  background: rgba(53, 106, 176, 1);
+  border-radius: 9999px;
+}
+
+.warrantyCard {
+  padding: 1.5rem;
+  border-radius: 0.875rem;
+  border: 1px solid rgba(53, 106, 176, 0.12);
+  background: rgba(255, 255, 255, 1);
+  margin-bottom: 1rem;
+}
+
+.warrantyHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(53, 106, 176, 0.1);
+}
+
+.warrantyDuration {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: rgba(53, 106, 176, 1);
+}
+
+.warrantyType {
+  font-size: 0.875rem;
+  color: rgba(53, 106, 176, 0.6);
+}
+
+.listTitle {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: rgba(53, 106, 176, 1);
+  margin-bottom: 0.5rem;
+}
+
+.listItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  color: rgba(53, 106, 176, 0.75);
+  padding: 0.25rem 0;
+  line-height: 1.5;
+}
+
+.listBullet {
+  flex-shrink: 0;
+  color: rgba(53, 106, 176, 1);
+  margin-top: 0.2rem;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .infoGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.infoCard {
+  padding: 1.25rem;
+  border-radius: 0.875rem;
+  border: 1px solid rgba(53, 106, 176, 0.12);
+  background: rgba(53, 106, 176, 0.03);
+}
+
+.infoCardTitle {
+  font-weight: 700;
+  color: rgba(53, 106, 176, 1);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.infoCardText {
+  font-size: 0.9375rem;
+  color: rgba(53, 106, 176, 0.7);
+  line-height: 1.55;
+}
+
+.boxGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .boxGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.boxItem {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.625rem;
+  background: rgba(53, 106, 176, 0.04);
+  font-size: 0.9375rem;
+  color: rgba(53, 106, 176, 0.8);
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  font-size: 0.875rem;
+  color: rgba(53, 106, 176, 0.6);
+  padding-top: 1rem;
+  border-top: 1px solid rgba(53, 106, 176, 0.1);
+}
+
+.metaLabel {
+  font-weight: 600;
+  color: rgba(53, 106, 176, 0.8);
 }

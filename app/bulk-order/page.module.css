@@ -1,0 +1,221 @@
+.page {
+  width: 100%;
+  min-height: 100vh;
+  background: rgba(53, 106, 176, 0.03);
+}
+
+.content {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: rgba(53, 106, 176, 1);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 0.9375rem;
+  color: #64748b;
+  margin-bottom: 2rem;
+  line-height: 1.55;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid rgba(53, 106, 176, 0.12);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 4px 20px rgba(53, 106, 176, 0.06);
+}
+
+.cardTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: rgba(53, 106, 176, 1);
+  margin-bottom: 0.5rem;
+}
+
+.cardHint {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.125rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.btnPrimary {
+  background: rgba(53, 106, 176, 1);
+  color: #fff;
+}
+
+.btnOutline {
+  background: #fff;
+  color: rgba(53, 106, 176, 1);
+  border: 1px solid rgba(53, 106, 176, 0.3);
+}
+
+.btnSuccess {
+  background: #16a34a;
+  color: #fff;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.uploadZone {
+  border: 2px dashed rgba(53, 106, 176, 0.3);
+  border-radius: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  background: rgba(53, 106, 176, 0.03);
+}
+
+.uploadZoneActive {
+  border-color: rgba(53, 106, 176, 0.6);
+  background: rgba(53, 106, 176, 0.06);
+}
+
+.fileInput {
+  display: none;
+}
+
+.uploadLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(53, 106, 176, 1);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fileName {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid rgba(53, 106, 176, 0.12);
+  border-radius: 0.75rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: rgba(53, 106, 176, 0.06);
+  color: rgba(53, 106, 176, 1);
+  font-weight: 700;
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(53, 106, 176, 0.08);
+  color: #334155;
+}
+
+.rowError {
+  color: #dc2626;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.rowOk {
+  color: #16a34a;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.alert {
+  padding: 0.875rem 1rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.alertError {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.alertInfo {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.alertSuccess {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.adminOnly {
+  border-color: rgba(234, 179, 8, 0.35);
+  background: rgba(254, 249, 195, 0.25);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: rgba(234, 179, 8, 0.2);
+  color: #a16207;
+  margin-left: 0.5rem;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(53, 106, 176, 0.12);
+  font-weight: 700;
+  color: rgba(53, 106, 176, 1);
+}

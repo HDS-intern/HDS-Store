@@ -11,7 +11,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Hawking Defence - Premium Drones',
+  title: 'HDS - Premium Drones',
   description: 'Advanced defense and surveillance drones for professional operations',
   generator: 'v0.app',
   icons: {

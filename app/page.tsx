@@ -1,16 +1,17 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { ProductSlideshow } from '@/components/ProductSlideshow'
+import { HomeOfferPopup } from '@/components/HomeOfferPopup'
 import { ShoppingCart, Shield, Zap, Award } from 'lucide-react'
-import { PRODUCTS } from '@/lib/mockData'
+import { useApp } from '@/lib/context'
 import { formatPrice } from '@/lib/formatPrice'
+import { DEFAULT_MAIN_TEMPLATE, type MainTemplate } from '@/lib/mainTemplateTypes'
 import styles from './page.module.css'
-
-const FEATURED_PRODUCTS = PRODUCTS.slice(0, 3)
 
 const FEATURES = [
   {
@@ -36,39 +37,48 @@ const FEATURES = [
 ]
 
 export default function Home() {
+  const { products } = useApp()
+  const [template, setTemplate] = useState<MainTemplate>(DEFAULT_MAIN_TEMPLATE)
+  const featuredProducts = products.slice(0, 3)
+
+  useEffect(() => {
+    fetch('/api/main-template')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.template) setTemplate(data.template)
+      })
+      .catch(() => {
+        // keep defaults
+      })
+  }, [])
+
   return (
     <div className={`${styles.page} flex flex-col min-h-screen`}>
       <Header />
 
-      <ProductSlideshow products={PRODUCTS} />
+      <ProductSlideshow products={products} slides={template.slides} />
 
       <section className={styles.hero}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className={styles.heroContent}>
-              <h1 className={styles.heroTitle}>
-                NEW ARRIVALS: Advanced Defense & Surveillance Drones
-              </h1>
-              <p className={styles.heroSubtitle}>
-                Professional-grade unmanned systems for military, defense, and
-                industrial applications. Precision engineering meets cutting-edge
-                technology.
-              </p>
+              <h1 className={styles.heroTitle}>{template.hero.title}</h1>
+              <p className={styles.heroSubtitle}>{template.hero.subtitle}</p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/shop" className={styles.ctaPrimary}>
+                <Link href={template.hero.primaryButtonUrl} className={styles.ctaPrimary}>
                   <ShoppingCart className="w-5 h-5" />
-                  Shop Now
+                  {template.hero.primaryButtonText}
                 </Link>
-                <Link href="/about" className={styles.ctaSecondary}>
-                  Learn More
+                <Link href={template.hero.secondaryButtonUrl} className={styles.ctaSecondary}>
+                  {template.hero.secondaryButtonText}
                 </Link>
               </div>
             </div>
             <div className={styles.heroImage}>
               <div className={styles.heroImageOverlay} />
               <Image
-                src={PRODUCTS[0].image}
-                alt="Sentinel Pro Drone"
+                src={template.hero.image}
+                alt="Featured drone"
                 fill
                 className="object-cover"
                 priority
@@ -80,7 +90,7 @@ export default function Home() {
 
       <section className={styles.features}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className={styles.sectionTitle}>Why Choose Hawking Defence</h2>
+          <h2 className={styles.sectionTitle}>Why Choose HDS</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {FEATURES.map((feature, index) => (
               <div key={index} className={styles.featureCard}>
@@ -104,7 +114,7 @@ export default function Home() {
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {FEATURED_PRODUCTS.map((product) => (
+            {featuredProducts.map((product) => (
               <Link
                 key={product.id}
                 href={`/product/${product.id}`}
@@ -163,6 +173,8 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      <HomeOfferPopup popup={template.popup} />
 
       <Footer />
     </div>

@@ -1,0 +1,112 @@
+.page {
+  width: 100%;
+  background: rgba(255, 255, 255, 1);
+}
+
+.page :global(.bg-card) {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.page :global(.bg-card:hover) {
+  box-shadow: 0 8px 24px rgba(53, 106, 176, 0.1);
+}
+
+.emptyState {
+  padding: 4rem 2rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 1);
+  border: 1px solid rgba(53, 106, 176, 0.12);
+  text-align: center;
+}
+
+.emptyIcon {
+  width: 4rem;
+  height: 4rem;
+  color: rgba(53, 106, 176, 0.35);
+  margin: 0 auto 1.25rem;
+}
+
+.emptyTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: rgba(53, 106, 176, 1);
+  margin-bottom: 0.5rem;
+}
+
+.emptyDesc {
+  color: rgba(53, 106, 176, 0.6);
+  margin-bottom: 1.75rem;
+  max-width: 24rem;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+.shopBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 1);
+  background: linear-gradient(
+    135deg,
+    rgba(53, 106, 176, 1),
+    rgba(74, 126, 196, 1)
+  );
+  box-shadow: 0 4px 16px rgba(53, 106, 176, 0.35);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.shopBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(53, 106, 176, 0.45);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.clearAllBtn {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e05252;
+  padding: 0.5rem 1rem;
+  border-radius: 0.625rem;
+  border: 1px solid rgba(224, 82, 82, 0.3);
+  background: rgba(224, 82, 82, 0.06);
+  transition: background 0.2s ease;
+}
+
+.clearAllBtn:hover {
+  background: rgba(224, 82, 82, 0.12);
+}
+
+.summaryBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0.875rem;
+  background: rgba(53, 106, 176, 0.06);
+  border: 1px solid rgba(53, 106, 176, 0.12);
+}
+
+.summaryText {
+  font-size: 0.9375rem;
+  color: rgba(53, 106, 176, 0.75);
+}
+
+.summaryValue {
+  font-weight: 700;
+  color: rgba(53, 106, 176, 1);
+}

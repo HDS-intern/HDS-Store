@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Heart, ShoppingCart } from 'lucide-react'
+import { Heart, ShoppingCart, Minus, Plus } from 'lucide-react'
 import { Product } from '@/lib/types'
 import { formatPrice } from '@/lib/formatPrice'
 import { useApp } from '@/lib/context'
@@ -13,19 +13,40 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addToCart, addToWishlist, removeFromWishlist, wishlist } = useApp()
+  const { cart, addToCart, updateCartQuantity, addToWishlist, removeFromWishlist, wishlist } =
+    useApp()
   const [showAddedNotification, setShowAddedNotification] = useState(false)
   const isInWishlist = wishlist.includes(product.id)
+  const cartItem = cart.find((item) => item.productId === product.id)
+  const cartQuantity = cartItem?.quantity ?? 0
+  const atStockLimit = cartQuantity >= product.stock
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+    if (!product.inStock) return
     addToCart(product, 1)
     setShowAddedNotification(true)
     setTimeout(() => setShowAddedNotification(false), 2000)
   }
 
+  const handleDecreaseQuantity = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    updateCartQuantity(product.id, cartQuantity - 1)
+  }
+
+  const handleIncreaseQuantity = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (cartQuantity < product.stock) {
+      updateCartQuantity(product.id, cartQuantity + 1)
+    }
+  }
+
   const handleToggleWishlist = (e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     if (isInWishlist) {
       removeFromWishlist(product.id)
     } else {
@@ -101,7 +122,9 @@ export function ProductCard({ product }: ProductCardProps) {
               : 'text-destructive'
           }`}
         >
-          {product.inStock ? '✓ In Stock' : 'Out of Stock'}
+          {product.inStock
+            ? `✓ In Stock (${product.stock} qty)`
+            : 'Out of Stock'}
         </p>
 
         {/* Price */}
@@ -114,18 +137,61 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
 
-        {/* Add to Cart Button */}
-        <button
-          onClick={handleAddToCart}
-          className="relative w-full mt-4 py-2.5 rounded-xl font-semibold text-white hover:shadow-lg transition-all duration-300 active:scale-95 flex items-center justify-center gap-2"
-          style={{
-            background: 'linear-gradient(135deg, rgba(53, 106, 176, 1), rgba(74, 126, 196, 1))',
-            boxShadow: '0 4px 14px rgba(53, 106, 176, 0.3)',
-          }}
-        >
-          <ShoppingCart className="w-4 h-4" />
-          Add to Cart
-        </button>
+        {/* Add to Cart / Quantity */}
+        {cartQuantity > 0 ? (
+          <div
+            className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-primary/25 bg-primary/5 px-3 py-2"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+          >
+            <span className="text-sm font-semibold text-primary">In cart</span>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDecreaseQuantity}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 bg-white text-primary hover:bg-primary/10 transition-colors"
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="min-w-[2rem] text-center text-base font-bold text-primary">
+                  {cartQuantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleIncreaseQuantity}
+                  disabled={atStockLimit}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 bg-white text-primary hover:bg-primary/10 transition-colors disabled:opacity-35 disabled:cursor-not-allowed"
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+              {atStockLimit && (
+                <span className="text-[0.6875rem] font-semibold text-red-600 leading-tight text-right">
+                  Current stock is reached
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={!product.inStock}
+            className="relative w-full mt-4 py-2.5 rounded-xl font-semibold text-white hover:shadow-lg transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: 'linear-gradient(135deg, rgba(53, 106, 176, 1), rgba(74, 126, 196, 1))',
+              boxShadow: '0 4px 14px rgba(53, 106, 176, 0.3)',
+            }}
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Add to Cart
+          </button>
+        )}
 
         {/* Notification */}
         {showAddedNotification && (

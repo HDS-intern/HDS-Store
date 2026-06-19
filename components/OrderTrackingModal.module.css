@@ -1,0 +1,306 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  animation: backdropIn 0.25s ease;
+}
+
+.popup {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.14);
+  animation: popupIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.closeBtn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  background: #f1f5f9;
+}
+
+.header {
+  margin-bottom: 1.25rem;
+  padding-right: 2rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0.25rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.trackingBox {
+  margin-bottom: 1.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, rgba(53, 106, 176, 0.08), rgba(53, 106, 176, 0.03));
+  border: 1px solid rgba(53, 106, 176, 0.18);
+  animation: fadeSlideUp 0.45s ease 0.1s both;
+}
+
+.trackingLabel {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 0.35rem;
+}
+
+.trackingId {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(53, 106, 176, 1);
+  word-break: break-all;
+}
+
+.trackingHint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0.35rem 0 0;
+}
+
+.statusSection {
+  animation: fadeSlideUp 0.45s ease 0.2s both;
+}
+
+.statusHeading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin: 0 0 1rem;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 0.25rem;
+}
+
+.progressTrack {
+  position: absolute;
+  left: 1.0625rem;
+  top: 0.75rem;
+  bottom: 0.75rem;
+  width: 2px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  width: 100%;
+  background: linear-gradient(180deg, rgba(53, 106, 176, 1), rgba(34, 197, 94, 1));
+  border-radius: 9999px;
+  transform-origin: top;
+  transform: scaleY(0);
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.step {
+  position: relative;
+  display: flex;
+  gap: 0.875rem;
+  padding-bottom: 1.25rem;
+  opacity: 0.45;
+  transform: translateY(8px);
+  animation: stepIn 0.5s ease forwards;
+}
+
+.stepComplete,
+.stepActive {
+  opacity: 1;
+}
+
+.step:last-child {
+  padding-bottom: 0;
+}
+
+.stepDotWrap {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.stepDot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 9999px;
+  border: 2px solid #cbd5e1;
+  background: #fff;
+  color: #94a3b8;
+  transition: border-color 0.35s ease, background 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.stepComplete .stepDot {
+  border-color: rgba(53, 106, 176, 1);
+  background: rgba(53, 106, 176, 1);
+  color: #fff;
+}
+
+.stepActive .stepDot {
+  border-color: rgba(53, 106, 176, 1);
+  background: #fff;
+  color: rgba(53, 106, 176, 1);
+  box-shadow: 0 0 0 4px rgba(53, 106, 176, 0.15);
+  animation: pulseDot 1.6s ease-in-out infinite;
+}
+
+.stepBody {
+  padding-top: 0.2rem;
+}
+
+.stepLabel {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #334155;
+  margin: 0;
+  transition: color 0.35s ease;
+}
+
+.stepActive .stepLabel,
+.stepComplete .stepLabel {
+  color: #0f172a;
+}
+
+.stepDesc {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0.15rem 0 0;
+}
+
+.stepTime {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(53, 106, 176, 0.1);
+  color: rgba(53, 106, 176, 1);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  animation: badgePop 0.4s ease 0.5s both;
+}
+
+.cancelledBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  margin-bottom: 1rem;
+  animation: fadeSlideUp 0.45s ease 0.15s both;
+}
+
+.cancelledBanner strong {
+  display: block;
+  font-size: 0.9375rem;
+  color: #b91c1c;
+}
+
+.cancelledBanner span {
+  display: block;
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popupIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes stepIn {
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseDot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(53, 106, 176, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(53, 106, 176, 0.08);
+  }
+}
+
+@keyframes badgePop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

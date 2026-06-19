@@ -10,3 +10,15 @@
 .page :global(.bg-card:hover) {
   box-shadow: 0 12px 32px rgba(53, 106, 176, 0.12);
 }
+
+.qtyBtnDisabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  color: #94a3b8;
+}
+
+.stockLimitMsg {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #dc2626;
+}

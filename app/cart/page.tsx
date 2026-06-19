@@ -5,17 +5,16 @@ import Image from 'next/image'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { useApp } from '@/lib/context'
-import { PRODUCTS } from '@/lib/mockData'
 import { formatPrice } from '@/lib/formatPrice'
 import { Trash2, Plus, Minus, ChevronRight, ShoppingCart } from 'lucide-react'
 import styles from './page.module.css'
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateCartQuantity, getCartTotal } = useApp()
+  const { cart, removeFromCart, updateCartQuantity, getCartTotal, products } = useApp()
 
   const cartItems = cart.map((item) => ({
     ...item,
-    product: PRODUCTS.find((p) => p.id === item.productId),
+    product: products.find((p) => p.id === item.productId),
   }))
 
   const total = getCartTotal()
@@ -100,28 +99,47 @@ export default function CartPage() {
 
                   <div className="flex items-center justify-between">
                     {/* Quantity Controls */}
-                    <div className="flex items-center border border-border rounded-lg">
-                      <button
-                        onClick={() =>
-                          updateCartQuantity(
-                            item.productId,
-                            Math.max(1, item.quantity - 1)
-                          )
-                        }
-                        className="px-3 py-2 hover:bg-muted transition-colors"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="px-4 py-2 font-semibold">{item.quantity}</span>
-                      <button
-                        onClick={() =>
-                          updateCartQuantity(item.productId, item.quantity + 1)
-                        }
-                        className="px-3 py-2 hover:bg-muted transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {(() => {
+                      const maxStock = item.product?.stock ?? 0
+                      const atStockLimit = item.quantity >= maxStock
+
+                      return (
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <div className="flex items-center border border-border rounded-lg">
+                            <button
+                              onClick={() =>
+                                updateCartQuantity(
+                                  item.productId,
+                                  Math.max(1, item.quantity - 1)
+                                )
+                              }
+                              className="px-3 py-2 hover:bg-muted transition-colors"
+                              aria-label="Decrease quantity"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <span className="px-4 py-2 font-semibold">{item.quantity}</span>
+                            <button
+                              onClick={() =>
+                                updateCartQuantity(item.productId, item.quantity + 1)
+                              }
+                              disabled={atStockLimit}
+                              className={`px-3 py-2 transition-colors ${
+                                atStockLimit
+                                  ? styles.qtyBtnDisabled
+                                  : 'hover:bg-muted'
+                              }`}
+                              aria-label="Increase quantity"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                          {atStockLimit && (
+                            <span className={styles.stockLimitMsg}>Current stock is reached</span>
+                          )}
+                        </div>
+                      )
+                    })()}
 
                     {/* Price */}
                     <div className="text-right">
@@ -181,7 +199,7 @@ export default function CartPage() {
 
             <Link
               href="/shop"
-              className="w-full py-3 border-2 border-border text-foreground rounded-lg font-bold text-center hover:bg-muted transition-colors"
+              className="w-full py-3 px-6 border-2 border-border text-foreground rounded-lg font-bold text-center hover:bg-muted transition-colors block"
             >
               Continue Shopping
             </Link>

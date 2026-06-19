@@ -1,33 +1,74 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { useApp } from '@/lib/context'
-import { PRODUCTS } from '@/lib/mockData'
+import { apiFetch } from '@/lib/api'
 import { formatPrice } from '@/lib/formatPrice'
 import {
   ShoppingCart,
-  ChevronRight,
   CreditCard,
   Truck,
   Check,
   User,
-  MapPin,
-  Phone,
-  Mail,
+  Smartphone,
+  Banknote,
+  Building2,
+  Copy,
+  QrCode,
 } from 'lucide-react'
-import { Order } from '@/lib/types'
+import {
+  UPI_ID,
+  BANK_DETAILS,
+  NET_BANKING_BANKS,
+  COMPANY_NAME,
+} from '@/lib/paymentConfig'
+import { OrderSuccessToast } from '@/components/OrderSuccessToast'
 import styles from './page.module.css'
 
 type CheckoutStep = 'customer' | 'shipping' | 'payment' | 'confirmation'
+type PaymentMethod = 'upi' | 'cod' | 'netbanking' | 'card_transfer'
+type UpiMode = 'qr' | 'upi_id'
+
+const PAYMENT_OPTIONS: {
+  id: PaymentMethod
+  label: string
+  description: string
+  icon: typeof CreditCard
+}[] = [
+  { id: 'upi', label: 'UPI Payment', description: 'Scan QR or pay via UPI ID', icon: Smartphone },
+  { id: 'cod', label: 'Cash on Delivery', description: 'Pay when your order arrives', icon: Banknote },
+  { id: 'netbanking', label: 'Net Banking', description: 'Pay through your bank portal', icon: Building2 },
+  { id: 'card_transfer', label: 'Card Transfer', description: 'NEFT / IMPS / card to account', icon: CreditCard },
+]
+
+type BulkPendingItem = {
+  modelNumber: string
+  qty: number
+  productId: string
+  productName: string
+  price: number
+}
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { cart, getCartTotal, addOrder, user, clearCart } = useApp()
+  const { cart, getCartTotal, addOrder, user, clearCart, products } = useApp()
   const [step, setStep] = useState<CheckoutStep>('customer')
+  const [bulkPendingItems] = useState<BulkPendingItem[]>(() => {
+    if (typeof window === 'undefined') return []
+    try {
+      const raw = sessionStorage.getItem('hds-bulk-order-pending')
+      if (!raw) return []
+      return JSON.parse(raw) as BulkPendingItem[]
+    } catch {
+      return []
+    }
+  })
+  const bulkOrder = bulkPendingItems.length > 0
 
   // Form Data
   const [customerData, setCustomerData] = useState({
@@ -44,24 +85,37 @@ export default function CheckoutPage() {
     country: 'United States',
   })
 
-  const [paymentData, setPaymentData] = useState({
-    cardNumber: '',
-    cardName: '',
-    expiry: '',
-    cvv: '',
-  })
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi')
+  const [upiMode, setUpiMode] = useState<UpiMode>('qr')
+  const [netBankingBank, setNetBankingBank] = useState('')
+  const [transferConfirmed, setTransferConfirmed] = useState(false)
+  const [paymentReference, setPaymentReference] = useState('')
+  const [copiedUpi, setCopiedUpi] = useState(false)
 
   const [orderId, setOrderId] = useState('')
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const cartItems = cart.map((item) => ({
     ...item,
-    product: PRODUCTS.find((p) => p.id === item.productId),
+    product: products.find((p) => p.id === item.productId),
   }))
 
   const subtotal = getCartTotal()
   const shipping = subtotal > 0 ? 50 : 0
   const tax = Math.round(subtotal * 0.08 * 100) / 100
   const total = subtotal + shipping + tax
+
+  useEffect(() => {
+    if (step !== 'confirmation') return
+
+    const timer = window.setTimeout(() => {
+      router.push('/shop')
+    }, 5000)
+
+    return () => window.clearTimeout(timer)
+  }, [step, router])
 
   const handleCustomerSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,31 +136,83 @@ export default function CheckoutPage() {
     }
   }
 
-  const handlePaymentSubmit = (e: React.FormEvent) => {
+  const isPaymentValid = () => {
+    switch (paymentMethod) {
+      case 'upi':
+      case 'cod':
+        return true
+      case 'netbanking':
+        return netBankingBank !== ''
+      case 'card_transfer':
+        return transferConfirmed
+      default:
+        return false
+    }
+  }
+
+  const copyUpiId = async () => {
+    try {
+      await navigator.clipboard.writeText(UPI_ID)
+      setCopiedUpi(true)
+      setTimeout(() => setCopiedUpi(false), 2000)
+    } catch {
+      setCopiedUpi(false)
+    }
+  }
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (
-      paymentData.cardNumber &&
-      paymentData.cardName &&
-      paymentData.expiry &&
-      paymentData.cvv
-    ) {
-      // Create order
-      const newOrder: Order = {
-        id: `ORD-${Date.now()}`,
-        userId: user?.id || 'guest',
-        items: cart,
-        total: total,
-        status: 'confirmed',
-        createdAt: new Date(),
-        deliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        trackingNumber: `TRACK${Math.random().toString(36).substring(2, 11).toUpperCase()}`,
-        shippingAddress: `${shippingData.address}, ${shippingData.city}, ${shippingData.state} ${shippingData.zipCode}`,
-        deliveryMethod: 'express',
+    if (!isPaymentValid() || submitting) return
+
+    const methodLabel =
+      paymentMethod === 'upi'
+        ? `upi-${upiMode}`
+        : paymentMethod === 'netbanking'
+          ? `netbanking-${netBankingBank}`
+          : paymentMethod
+
+    const newOrderId = `ORD-${Date.now()}`
+    const newOrder = {
+      id: newOrderId,
+      userId: user?.id || 'guest',
+      items: cart,
+      total: total,
+      status: 'pending' as const,
+      paymentStatus: paymentMethod === 'cod' ? ('pending' as const) : ('pending' as const),
+      authorized: false,
+      createdAt: new Date(),
+      deliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      trackingNumber: `TRACK${Math.random().toString(36).substring(2, 11).toUpperCase()}`,
+      shippingAddress: `${shippingData.address}, ${shippingData.city}, ${shippingData.state} ${shippingData.zipCode}`,
+      deliveryMethod: paymentMethod === 'cod' ? 'cod' : 'express',
+      paymentMethod: bulkOrder
+        ? `bulk_sheet|${paymentReference ? `${methodLabel}|ref:${paymentReference}` : methodLabel}`
+        : paymentReference
+          ? `${methodLabel}|ref:${paymentReference}`
+          : methodLabel,
+    }
+
+    setSubmitting(true)
+    setSubmitError('')
+
+    try {
+      await addOrder(newOrder)
+
+      if (bulkOrder) {
+        await apiFetch('/api/bulk-order/confirm', {
+          method: 'POST',
+          body: JSON.stringify({ items: bulkPendingItems, orderId: newOrderId }),
+        })
+        sessionStorage.removeItem('hds-bulk-order-pending')
       }
 
-      setOrderId(newOrder.id)
-      addOrder(newOrder)
+      setOrderId(newOrderId)
       setStep('confirmation')
+      setShowSuccessToast(true)
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to place order')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -135,6 +241,14 @@ export default function CheckoutPage() {
   return (
     <div className={`${styles.page} flex flex-col min-h-screen bg-background`}>
       <Header />
+
+      {showSuccessToast && orderId && (
+        <OrderSuccessToast
+          orderId={orderId}
+          bulkOrder={bulkOrder}
+          onDismiss={() => setShowSuccessToast(false)}
+        />
+      )}
 
       {/* Content */}
       <div className="flex-1 mx-auto max-w-6xl w-full px-4 sm:px-6 lg:px-8 py-12">
@@ -368,94 +482,236 @@ export default function CheckoutPage() {
             {/* Payment Information */}
             {step === 'payment' && (
               <div className="bg-card rounded-lg border border-border p-8">
-                <h2 className="text-2xl font-bold text-foreground mb-6">
-                  Payment Information
-                </h2>
+                <h2 className="text-2xl font-bold text-foreground mb-2">Payment Information</h2>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Choose how you would like to pay for your order.
+                </p>
+
                 <form onSubmit={handlePaymentSubmit} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">
-                      Cardholder Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={paymentData.cardName}
-                      onChange={(e) =>
-                        setPaymentData({ ...paymentData, cardName: e.target.value })
-                      }
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-                      placeholder="John Doe"
-                    />
+                  <div className={styles.paymentMethods}>
+                    {PAYMENT_OPTIONS.map((option) => {
+                      const Icon = option.icon
+                      const active = paymentMethod === option.id
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => {
+                            setPaymentMethod(option.id)
+                            setTransferConfirmed(false)
+                            setNetBankingBank('')
+                          }}
+                          className={`${styles.paymentMethodCard} ${active ? styles.paymentMethodActive : ''}`}
+                        >
+                          <Icon className="w-5 h-5 shrink-0" />
+                          <span>
+                            <span className={styles.paymentMethodLabel}>{option.label}</span>
+                            <span className={styles.paymentMethodHint}>{option.description}</span>
+                          </span>
+                        </button>
+                      )
+                    })}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">
-                      Card Number *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={paymentData.cardNumber}
-                      onChange={(e) =>
-                        setPaymentData({
-                          ...paymentData,
-                          cardNumber: e.target.value.replace(/\s/g, ''),
-                        })
-                      }
-                      placeholder="1234 5678 9012 3456"
-                      maxLength="19"
-                      className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-                    />
-                  </div>
+                  {paymentMethod === 'upi' && (
+                    <div className={styles.paymentPanel}>
+                      <p className={styles.panelTitle}>UPI Payment</p>
+                      <p className={styles.panelHint}>
+                        Use either option below — scan the QR code or send payment to our UPI ID.
+                      </p>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-2">
-                        Expiry Date *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={paymentData.expiry}
-                        onChange={(e) =>
-                          setPaymentData({ ...paymentData, expiry: e.target.value })
-                        }
-                        placeholder="MM/YY"
-                        maxLength="5"
-                        className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-                      />
+                      <div className={styles.upiToggle}>
+                        <button
+                          type="button"
+                          className={`${styles.upiToggleBtn} ${upiMode === 'qr' ? styles.upiToggleActive : ''}`}
+                          onClick={() => setUpiMode('qr')}
+                        >
+                          <QrCode className="w-4 h-4" />
+                          Scan QR Code
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.upiToggleBtn} ${upiMode === 'upi_id' ? styles.upiToggleActive : ''}`}
+                          onClick={() => setUpiMode('upi_id')}
+                        >
+                          <Smartphone className="w-4 h-4" />
+                          Pay via UPI ID
+                        </button>
+                      </div>
+
+                      {upiMode === 'qr' ? (
+                        <div className={styles.qrBlock}>
+                          <Image
+                            src="/images/hds-upi-qr.svg"
+                            alt="HDS UPI QR code"
+                            width={200}
+                            height={200}
+                            className={styles.qrImage}
+                          />
+                          <p className={styles.qrAmount}>Amount: {formatPrice(total)}</p>
+                          <p className={styles.qrHint}>
+                            Open any UPI app (GPay, PhonePe, Paytm) and scan to pay {COMPANY_NAME}.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className={styles.upiIdBlock}>
+                          <p className={styles.upiIdLabel}>UPI ID</p>
+                          <div className={styles.upiIdRow}>
+                            <code className={styles.upiIdValue}>{UPI_ID}</code>
+                            <button type="button" onClick={copyUpiId} className={styles.copyBtn}>
+                              <Copy className="w-4 h-4" />
+                              {copiedUpi ? 'Copied' : 'Copy'}
+                            </button>
+                          </div>
+                          <p className={styles.qrHint}>
+                            Send {formatPrice(total)} to the UPI ID above, then place your order.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="mt-4">
+                        <label className="block text-sm font-semibold text-foreground mb-2">
+                          UPI Transaction Reference (optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={paymentReference}
+                          onChange={(e) => setPaymentReference(e.target.value)}
+                          className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                          placeholder="e.g. 123456789012"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-2">
-                        CVV *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={paymentData.cvv}
-                        onChange={(e) =>
-                          setPaymentData({ ...paymentData, cvv: e.target.value })
-                        }
-                        placeholder="123"
-                        maxLength="4"
-                        className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-                      />
+                  )}
+
+                  {paymentMethod === 'cod' && (
+                    <div className={styles.paymentPanel}>
+                      <p className={styles.panelTitle}>Cash on Delivery</p>
+                      <p className={styles.panelHint}>
+                        Pay {formatPrice(total)} in cash when your drone order is delivered. No online
+                        payment is required now.
+                      </p>
+                      <ul className={styles.infoList}>
+                        <li>Please keep exact change ready if possible.</li>
+                        <li>Our delivery partner will provide a receipt on payment.</li>
+                        <li>COD is available for eligible pin codes only.</li>
+                      </ul>
                     </div>
-                  </div>
+                  )}
+
+                  {paymentMethod === 'netbanking' && (
+                    <div className={styles.paymentPanel}>
+                      <p className={styles.panelTitle}>Net Banking</p>
+                      <p className={styles.panelHint}>
+                        Select your bank and transfer {formatPrice(total)} using net banking.
+                      </p>
+
+                      <div className="mb-4">
+                        <label className="block text-sm font-semibold text-foreground mb-2">
+                          Select Your Bank *
+                        </label>
+                        <select
+                          required
+                          value={netBankingBank}
+                          onChange={(e) => setNetBankingBank(e.target.value)}
+                          className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                        >
+                          <option value="">Choose a bank</option>
+                          {NET_BANKING_BANKS.map((bank) => (
+                            <option key={bank} value={bank}>
+                              {bank}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className={styles.bankDetails}>
+                        <p className={styles.bankDetailsTitle}>Transfer to {COMPANY_NAME}</p>
+                        <p><span>Bank:</span> {BANK_DETAILS.bankName}</p>
+                        <p><span>Account Name:</span> {BANK_DETAILS.accountName}</p>
+                        <p><span>Account No:</span> {BANK_DETAILS.accountNumber}</p>
+                        <p><span>IFSC:</span> {BANK_DETAILS.ifsc}</p>
+                        <p><span>Branch:</span> {BANK_DETAILS.branch}</p>
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="block text-sm font-semibold text-foreground mb-2">
+                          Transaction Reference (optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={paymentReference}
+                          onChange={(e) => setPaymentReference(e.target.value)}
+                          className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                          placeholder="UTR / reference number"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'card_transfer' && (
+                    <div className={styles.paymentPanel}>
+                      <p className={styles.panelTitle}>Card Transfer</p>
+                      <p className={styles.panelHint}>
+                        Transfer {formatPrice(total)} via NEFT, IMPS, or card-to-account payment using
+                        the details below.
+                      </p>
+
+                      <div className={styles.bankDetails}>
+                        <p className={styles.bankDetailsTitle}>Beneficiary Details</p>
+                        <p><span>Bank:</span> {BANK_DETAILS.bankName}</p>
+                        <p><span>Account Name:</span> {BANK_DETAILS.accountName}</p>
+                        <p><span>Account No:</span> {BANK_DETAILS.accountNumber}</p>
+                        <p><span>IFSC:</span> {BANK_DETAILS.ifsc}</p>
+                        <p><span>Branch:</span> {BANK_DETAILS.branch}</p>
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="block text-sm font-semibold text-foreground mb-2">
+                          Transaction Reference (optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={paymentReference}
+                          onChange={(e) => setPaymentReference(e.target.value)}
+                          className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                          placeholder="UTR / reference number"
+                        />
+                      </div>
+
+                      <label className={styles.confirmRow}>
+                        <input
+                          type="checkbox"
+                          checked={transferConfirmed}
+                          onChange={(e) => setTransferConfirmed(e.target.checked)}
+                          className={styles.confirmCheckbox}
+                        />
+                        <span>I have initiated the transfer for {formatPrice(total)}</span>
+                      </label>
+                    </div>
+                  )}
+
+                  {submitError && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {submitError}
+                    </div>
+                  )}
 
                   <div className="flex gap-4">
                     <button
                       type="button"
                       onClick={() => setStep('shipping')}
                       className="flex-1 py-3 border-2 border-border text-foreground rounded-lg font-bold hover:bg-muted transition-colors"
+                      disabled={submitting}
                     >
                       Back
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 py-3 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-lg font-bold hover:shadow-lg transition-all"
+                      disabled={!isPaymentValid() || submitting}
+                      className="flex-1 py-3 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-lg font-bold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Place Order
+                      {submitting ? 'Placing Order...' : 'Place Order'}
                     </button>
                   </div>
                 </form>
@@ -473,9 +729,13 @@ export default function CheckoutPage() {
                 <h2 className="text-3xl font-bold text-foreground mb-2">
                   Order Confirmed!
                 </h2>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground mb-2">
                   Thank you for your purchase. Your order has been confirmed and will be
-                  shipped soon.
+                  shipped soon. You can review your purchased products from the Orders tab in
+                  your account.
+                </p>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Redirecting to the shop in a few seconds...
                 </p>
                 <div className="bg-background rounded-lg p-6 mb-6">
                   <p className="text-sm text-muted-foreground mb-2">Order ID</p>

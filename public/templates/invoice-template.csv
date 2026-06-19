@@ -1,0 +1,3 @@
+Invoice ID,Order ID,Customer Name,Amount (IND),Payment Status,Payment Method,Generated Date
+"INV-1781776655103","ORD-1781776655103","Test Customer","47440.4","pending","upi-qr","2026-06-17"
+"INV-1781776207293","ORD-1781776207293","Test Customer","43880","paid","bulk_sheet|cod","2026-06-16"

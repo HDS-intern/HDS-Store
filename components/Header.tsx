@@ -3,11 +3,11 @@
 import styles from './Header.module.css'
 import Link from 'next/link'
 import { useApp } from '@/lib/context'
-import { ShoppingCart, Heart, User, Menu, X, Search } from 'lucide-react'
+import { ShoppingCart, Heart, Menu, X, Search, FileSpreadsheet } from 'lucide-react'
 import { useState } from 'react'
 
 export function Header() {
-  const { cart, wishlist } = useApp()
+  const { cart, wishlist, user } = useApp()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
@@ -51,6 +51,15 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-1 sm:gap-2 ml-4 sm:ml-8">
+            <Link
+              href="/bulk-order"
+              className={`${styles.iconBtn} hidden lg:inline-flex`}
+              aria-label="Bulk order sheet"
+              title="Bulk Order Sheet"
+            >
+              <FileSpreadsheet className="w-5 h-5" />
+            </Link>
+
             <button className={`${styles.iconBtn} lg:hidden`} aria-label="Search">
               <Search className="w-5 h-5" />
             </button>
@@ -69,9 +78,18 @@ export function Header() {
               )}
             </Link>
 
-            <Link href="/account" className={styles.iconBtn} aria-label="Account">
-              <User className="w-5 h-5" />
-            </Link>
+            {user ? (
+              <Link
+                href={user.role === 'admin' || user.role === 'staff' ? '/admin' : '/account'}
+                className={styles.authBtn}
+              >
+                {user.name.split(' ')[0]}
+              </Link>
+            ) : (
+              <Link href="/login" className={styles.authBtn}>
+                Log in / Register
+              </Link>
+            )}
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -110,6 +128,30 @@ export function Header() {
             >
               Contact
             </Link>
+            <Link
+              href="/bulk-order"
+              className={styles.mobileLink}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Bulk Order Sheet
+            </Link>
+            <Link
+              href="/wishlist"
+              className={styles.mobileLink}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Liked List
+              {wishlist.length > 0 && ` (${wishlist.length})`}
+            </Link>
+            {!user && (
+              <Link
+                href="/login"
+                className={styles.mobileLink}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Log in / Register
+              </Link>
+            )}
           </nav>
         )}
       </div>

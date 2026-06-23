@@ -1,9 +1,20 @@
 'use client'
 
-import { useCallback, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Filter } from 'lucide-react'
+import { apiFetch } from '@/lib/api'
 import { formatPrice } from '@/lib/formatPrice'
+import {
+  defaultSalesChartFilter,
+  formatFyLabel,
+  salesChartFilterToQuery,
+  type SalesChartFilter,
+  type SalesChartFilterType,
+} from '@/lib/salesChartFilter'
 import type { SalesChartMonth } from '@/lib/types'
 import styles from './SalesLineChart.module.css'
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 type ChartMode = 'amount' | 'products'
 
@@ -124,15 +135,116 @@ function formatTooltipValue(value: number, mode: ChartMode): string {
   return `${Math.round(value)} units`
 }
 
-type SalesLineChartProps = {
-  data: SalesChartMonth[]
+function formatXLabel(row: SalesChartMonth): { line1: string; line2: string } {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(row.key)) {
+    const [, month, day] = row.key.split('-')
+    return {
+      line1: `${parseInt(day, 10)} ${MONTH_NAMES[parseInt(month, 10) - 1]}`,
+      line2: row.key.slice(0, 4),
+    }
+  }
+  const [name, year] = row.month.split(' ')
+  return { line1: name, line2: year ?? '' }
 }
 
-export function SalesLineChart({ data }: SalesLineChartProps) {
+type SalesLineChartProps = {
+  initialData: SalesChartMonth[]
+}
+
+export function SalesLineChart({ initialData }: SalesLineChartProps) {
   const chartId = useId().replace(/:/g, '')
+  const filterRef = useRef<HTMLDivElement>(null)
+  const [data, setData] = useState<SalesChartMonth[]>(initialData)
+  const [chartLoading, setChartLoading] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [appliedFilter, setAppliedFilter] = useState<SalesChartFilter>(defaultSalesChartFilter)
+  const [draftFilter, setDraftFilter] = useState<SalesChartFilter>(defaultSalesChartFilter)
   const [mode, setMode] = useState<ChartMode>('amount')
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const [focusedSeries, setFocusedSeries] = useState<string | null>(null)
+
+  useEffect(() => {
+    setData(initialData)
+  }, [initialData])
+
+  useEffect(() => {
+    if (!filterOpen) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setFilterOpen(false)
+        setDraftFilter(appliedFilter)
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [filterOpen, appliedFilter])
+
+  const fyYearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear()
+    const years: number[] = []
+    for (let year = currentYear - 6; year <= currentYear + 1; year++) {
+      years.push(year)
+    }
+    return years
+  }, [])
+
+  const loadChartData = useCallback(async (filter: SalesChartFilter) => {
+    setChartLoading(true)
+    try {
+      const response = await apiFetch<{ salesChart: SalesChartMonth[] }>(
+        `/api/admin/dashboard/sales-chart?${salesChartFilterToQuery(filter)}`
+      )
+      setData(response.salesChart)
+      setActiveIndex(null)
+    } catch {
+      // keep previous chart data on failure
+    } finally {
+      setChartLoading(false)
+    }
+  }, [])
+
+  const applyFilter = () => {
+    setAppliedFilter(draftFilter)
+    setFilterOpen(false)
+    void loadChartData(draftFilter)
+  }
+
+  const resetFilter = () => {
+    const next = defaultSalesChartFilter()
+    setDraftFilter(next)
+    setAppliedFilter(next)
+    setFilterOpen(false)
+    void loadChartData(next)
+  }
+
+  const setFilterType = (type: SalesChartFilterType) => {
+    setDraftFilter((prev) => {
+      if (type === prev.type) return prev
+      if (type === 'date') {
+        const now = new Date()
+        const end = now.toISOString().slice(0, 10)
+        const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
+        return { type, start, end }
+      }
+      if (type === 'month') {
+        return defaultSalesChartFilter()
+      }
+      const year = new Date().getFullYear()
+      return { type, start: String(year - 1), end: String(year) }
+    })
+  }
+
+  const filterSummary = useMemo(() => {
+    if (appliedFilter.type === 'date') {
+      return `${appliedFilter.start} → ${appliedFilter.end}`
+    }
+    if (appliedFilter.type === 'month') {
+      const [sy, sm] = appliedFilter.start.split('-')
+      const [ey, em] = appliedFilter.end.split('-')
+      return `${MONTH_NAMES[parseInt(sm, 10) - 1]} ${sy} → ${MONTH_NAMES[parseInt(em, 10) - 1]} ${ey}`
+    }
+    return `${formatFyLabel(Number(appliedFilter.start))} → ${formatFyLabel(Number(appliedFilter.end))}`
+  }, [appliedFilter])
 
   const series = mode === 'amount' ? AMOUNT_SERIES : PRODUCT_SERIES
 
@@ -212,6 +324,171 @@ export function SalesLineChart({ data }: SalesLineChartProps) {
   return (
     <div className={styles.wrap}>
       <div className={styles.toolbar}>
+        <div className={styles.toolbarLeft}>
+          <div className={styles.filterWrap} ref={filterRef}>
+            <button
+              type="button"
+              className={`${styles.filterBtn} ${filterOpen ? styles.filterBtnActive : ''}`}
+              onClick={() => {
+                setFilterOpen((open) => {
+                  if (!open) setDraftFilter(appliedFilter)
+                  return !open
+                })
+              }}
+              aria-expanded={filterOpen}
+              aria-haspopup="dialog"
+            >
+              <Filter className="w-3.5 h-3.5" />
+              Filter
+            </button>
+
+            {filterOpen && (
+              <div className={styles.filterPanel} role="dialog" aria-label="Sales chart filter">
+                <p className={styles.filterTitle}>Filter by</p>
+                <div className={styles.filterTypeRow}>
+                  {(
+                    [
+                      ['date', 'Date range'],
+                      ['month', 'Month range'],
+                      ['fy', 'Financial year'],
+                    ] as const
+                  ).map(([type, label]) => (
+                    <button
+                      key={type}
+                      type="button"
+                      className={
+                        draftFilter.type === type ? styles.filterTypeActive : styles.filterTypeBtn
+                      }
+                      onClick={() => setFilterType(type)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {draftFilter.type === 'date' && (
+                  <div className={styles.filterFields}>
+                    <label className={styles.filterField}>
+                      <span>Start date</span>
+                      <input
+                        type="date"
+                        value={draftFilter.start}
+                        max={draftFilter.end}
+                        onChange={(e) =>
+                          setDraftFilter((prev) =>
+                            prev.type === 'date' ? { ...prev, start: e.target.value } : prev
+                          )
+                        }
+                      />
+                    </label>
+                    <label className={styles.filterField}>
+                      <span>End date</span>
+                      <input
+                        type="date"
+                        value={draftFilter.end}
+                        min={draftFilter.start}
+                        onChange={(e) =>
+                          setDraftFilter((prev) =>
+                            prev.type === 'date' ? { ...prev, end: e.target.value } : prev
+                          )
+                        }
+                      />
+                    </label>
+                  </div>
+                )}
+
+                {draftFilter.type === 'month' && (
+                  <div className={styles.filterFields}>
+                    <label className={styles.filterField}>
+                      <span>Start month</span>
+                      <input
+                        type="month"
+                        value={draftFilter.start}
+                        max={draftFilter.end}
+                        onChange={(e) =>
+                          setDraftFilter((prev) =>
+                            prev.type === 'month' ? { ...prev, start: e.target.value } : prev
+                          )
+                        }
+                      />
+                    </label>
+                    <label className={styles.filterField}>
+                      <span>End month</span>
+                      <input
+                        type="month"
+                        value={draftFilter.end}
+                        min={draftFilter.start}
+                        onChange={(e) =>
+                          setDraftFilter((prev) =>
+                            prev.type === 'month' ? { ...prev, end: e.target.value } : prev
+                          )
+                        }
+                      />
+                    </label>
+                  </div>
+                )}
+
+                {draftFilter.type === 'fy' && (
+                  <div className={styles.filterFields}>
+                    <label className={styles.filterField}>
+                      <span>Start financial year</span>
+                      <select
+                        className="hds-select-dark"
+                        value={draftFilter.start}
+                        onChange={(e) =>
+                          setDraftFilter((prev) => {
+                            if (prev.type !== 'fy') return prev
+                            const start = e.target.value
+                            const end = Number(start) > Number(prev.end) ? start : prev.end
+                            return { ...prev, start, end }
+                          })
+                        }
+                      >
+                        {fyYearOptions.map((year) => (
+                          <option key={`start-${year}`} value={String(year)}>
+                            {formatFyLabel(year)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.filterField}>
+                      <span>End financial year</span>
+                      <select
+                        className="hds-select-dark"
+                        value={draftFilter.end}
+                        onChange={(e) =>
+                          setDraftFilter((prev) => {
+                            if (prev.type !== 'fy') return prev
+                            const end = e.target.value
+                            const start = Number(end) < Number(prev.start) ? end : prev.start
+                            return { ...prev, start, end }
+                          })
+                        }
+                      >
+                        {fyYearOptions.map((year) => (
+                          <option key={`end-${year}`} value={String(year)}>
+                            {formatFyLabel(year)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
+
+                <div className={styles.filterActions}>
+                  <button type="button" className={styles.filterResetBtn} onClick={resetFilter}>
+                    Reset
+                  </button>
+                  <button type="button" className={styles.filterApplyBtn} onClick={applyFilter}>
+                    Apply
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          <span className={styles.filterSummary}>{filterSummary}</span>
+        </div>
+
         <div className={styles.toggle} role="tablist" aria-label="Sales chart view">
           <button
             type="button"
@@ -258,7 +535,7 @@ export function SalesLineChart({ data }: SalesLineChartProps) {
         ))}
       </div>
 
-      <div className={styles.chartBox}>
+      <div className={`${styles.chartBox} ${chartLoading ? styles.chartLoading : ''}`}>
         {activeMonth && activeIndex !== null && (
           <div className={styles.floatingTooltip} role="status">
             <p className={styles.tooltipTitle}>{activeMonth.month}</p>
@@ -337,7 +614,7 @@ export function SalesLineChart({ data }: SalesLineChartProps) {
 
           {data.map((row, index) => {
             const x = plot.xPositions[index]
-            const [monthName, year] = row.month.split(' ')
+            const { line1, line2 } = formatXLabel(row)
             const isActive = activeIndex === index
             return (
               <text
@@ -348,11 +625,13 @@ export function SalesLineChart({ data }: SalesLineChartProps) {
                 textAnchor="middle"
               >
                 <tspan x={x} dy="0">
-                  {monthName}
+                  {line1}
                 </tspan>
-                <tspan x={x} dy="11">
-                  {year}
-                </tspan>
+                {line2 ? (
+                  <tspan x={x} dy="11">
+                    {line2}
+                  </tspan>
+                ) : null}
               </text>
             )
           })}

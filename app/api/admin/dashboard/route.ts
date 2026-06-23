@@ -47,7 +47,7 @@ export async function GET(request: Request) {
       "SELECT COUNT(*) as c FROM staff_attendance WHERE date = ? AND status = 'present' AND check_in IS NOT NULL"
     ).get(today) as { c: number }
 
-    const salesChart = buildSalesChartData(db, 6)
+    const salesChart = buildSalesChartData(db)
 
     const attendanceRows = db.prepare(`
       SELECT a.id, a.staff_id, a.date, a.status, a.check_in, a.check_out, s.employee_name
@@ -86,7 +86,9 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json(stats)
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Failed'
+    const status = msg === 'Unauthorized' ? 401 : 500
+    return NextResponse.json({ error: msg }, { status })
   }
 }

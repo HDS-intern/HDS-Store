@@ -8,6 +8,7 @@
   align-items: flex-end;
   gap: 0.75rem;
   pointer-events: none;
+  overflow: visible;
 }
 
 .customerChatWrap > * {
@@ -26,11 +27,16 @@
   background: linear-gradient(135deg, #356ab0, #1d4ed8);
   color: #fff;
   cursor: pointer;
+  overflow: visible;
   box-shadow:
     0 12px 28px rgba(29, 78, 216, 0.35),
     0 0 0 0 rgba(59, 130, 246, 0.45);
   animation: chatPulse 2.4s ease-in-out infinite;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.launcherUnread {
+  animation: chatPulseUnread 1.8s ease-in-out infinite;
 }
 
 .launcher:hover {
@@ -55,10 +61,11 @@
 
 .badge {
   position: absolute;
-  top: -0.15rem;
-  right: -0.15rem;
-  min-width: 1.25rem;
-  height: 1.25rem;
+  top: -0.35rem;
+  right: -0.35rem;
+  z-index: 3;
+  min-width: 1.35rem;
+  height: 1.35rem;
   padding: 0 0.3rem;
   border-radius: 9999px;
   background: #ef4444;
@@ -69,7 +76,8 @@
   align-items: center;
   justify-content: center;
   border: 2px solid #fff;
-  animation: badgePop 0.35s ease;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.45);
+  animation: badgePop 0.35s ease, badgePulse 1.6s ease-in-out infinite;
 }
 
 .panel {
@@ -177,7 +185,8 @@
   line-height: 1rem;
 }
 
-.liveSupportBanner {
+.liveSupportBanner,
+.ticketBanner {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -186,14 +195,16 @@
   border-bottom: 1px solid rgba(148, 163, 184, 0.15);
 }
 
-.liveSupportText {
+.liveSupportText,
+.ticketBannerText {
   margin: 0;
   font-size: 0.6875rem;
   line-height: 1.45;
   color: #475569;
 }
 
-.liveSupportBtn {
+.liveSupportBtn,
+.ticketBannerBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -211,7 +222,8 @@
   animation: supportGlow 2.5s ease-in-out infinite;
 }
 
-.liveSupportBtn:hover {
+.liveSupportBtn:hover,
+.ticketBannerBtn:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
 }
@@ -396,6 +408,132 @@
   to {
     transform: scale(1);
   }
+}
+
+@keyframes badgePulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes chatPulseUnread {
+  0%,
+  100% {
+    box-shadow:
+      0 12px 28px rgba(29, 78, 216, 0.35),
+      0 0 0 0 rgba(239, 68, 68, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 14px 30px rgba(29, 78, 216, 0.42),
+      0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+.ticketPanel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.875rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+}
+
+.ticketForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.ticketField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.ticketField input,
+.ticketField textarea {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.625rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  font-size: 0.8125rem;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+}
+
+.ticketField select {
+  width: 100%;
+}
+
+.ticketField input:focus,
+.ticketField select:focus,
+.ticketField textarea:focus {
+  border-color: #356ab0;
+  box-shadow: 0 0 0 3px rgba(53, 106, 176, 0.15);
+}
+
+.ticketField textarea {
+  resize: vertical;
+  min-height: 5.5rem;
+}
+
+.ticketSubmitBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.625rem 0.875rem;
+  border: none;
+  border-radius: 0.625rem;
+  background: linear-gradient(135deg, #356ab0, #1d4ed8);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ticketSubmitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ticketError {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #dc2626;
+}
+
+.ticketSuccess {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+}
+
+.ticketSuccessTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e3a5f;
+}
+
+.ticketSuccessText {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #64748b;
 }
 
 @media (max-width: 480px) {

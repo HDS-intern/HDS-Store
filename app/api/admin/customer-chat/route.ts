@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getUserBySession, getTokenFromRequest, requireStaffAccess } from '@/lib/auth'
 import {
+  countUnreadCustomerChatMessages,
+  deleteSupportChatMessage,
+  deleteSupportThread,
   insertChatMessage,
   listChatMessages,
   listSupportThreads,
@@ -22,7 +25,8 @@ export async function GET(request: Request) {
     }
 
     const threads = listSupportThreads()
-    return NextResponse.json({ threads })
+    const unreadCount = countUnreadCustomerChatMessages()
+    return NextResponse.json({ threads, unreadCount })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed'
     return NextResponse.json({ error: msg }, { status: msg === 'Unauthorized' ? 401 : 500 })
@@ -51,6 +55,39 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ message: reply, staffName: staff.name })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Failed'
+    return NextResponse.json({ error: msg }, { status: msg === 'Unauthorized' ? 401 : 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    requireStaffAccess(getUserBySession(getTokenFromRequest(request)))
+    const body = await request.json()
+    const messageId = typeof body.messageId === 'string' ? body.messageId : ''
+    const userId = typeof body.userId === 'string' ? body.userId : ''
+
+    if (userId) {
+      const deletedCount = deleteSupportThread(userId)
+      if (deletedCount === 0) {
+        return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+      }
+      const unreadCount = countUnreadCustomerChatMessages()
+      return NextResponse.json({ success: true, deletedCount, unreadCount })
+    }
+
+    if (!messageId) {
+      return NextResponse.json({ error: 'Message ID or user ID required' }, { status: 400 })
+    }
+
+    const deleted = deleteSupportChatMessage(messageId)
+    if (!deleted) {
+      return NextResponse.json({ error: 'Message not found' }, { status: 404 })
+    }
+
+    const unreadCount = countUnreadCustomerChatMessages()
+    return NextResponse.json({ success: true, unreadCount })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed'
     return NextResponse.json({ error: msg }, { status: msg === 'Unauthorized' ? 401 : 500 })

@@ -34,7 +34,7 @@ export function AdminContactMessageToast({
       className={styles.toast}
       role="button"
       tabIndex={0}
-      aria-label={`New customer message from ${notification.name}. Open messages.`}
+      aria-label={`New support ticket from ${notification.name}. Open tickets.`}
       onClick={onViewMessages}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -47,15 +47,15 @@ export function AdminContactMessageToast({
         <MessageSquare className="w-5 h-5" />
       </div>
       <div className={styles.content}>
-        <p className={styles.title}>New Customer Message</p>
+        <p className={styles.title}>New Support Ticket</p>
         <p className={styles.message}>
-          <strong>{notification.name}</strong> sent a message about{' '}
+          <strong>{notification.name}</strong> generated a ticket for{' '}
           <strong>{notification.subject}</strong>.
         </p>
-        <p className={styles.meta}>Message ID: {notification.messageId}</p>
+        <p className={styles.meta}>Ticket ID: {notification.messageId}</p>
         {queueCount > 0 && (
           <p className={styles.queueHint}>
-            +{queueCount} more message{queueCount > 1 ? 's' : ''}
+            +{queueCount} more ticket{queueCount > 1 ? 's' : ''}
           </p>
         )}
       </div>

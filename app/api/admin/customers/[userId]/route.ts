@@ -7,6 +7,7 @@ export const runtime = 'nodejs'
 
 function canViewOrders(user: NonNullable<ReturnType<typeof getUserBySession>>) {
   return (
+    hasPermission(user, 'dashboard') ||
     hasPermission(user, 'orders_view') ||
     hasPermission(user, 'orders_manage') ||
     hasPermission(user, 'payments_view') ||

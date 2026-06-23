@@ -218,7 +218,7 @@ export default function WishlistPage() {
                         sortBy: e.target.value as FilterState['sortBy'],
                       })
                     }
-                    className="px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="hds-select hds-select-inline"
                   >
                     <option value="relevance">Relevance</option>
                     <option value="price-low">Price: Low to High</option>

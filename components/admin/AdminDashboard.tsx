@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/formatPrice'
 import type { DashboardStats, WarrantyClaim } from '@/lib/types'
 import { ExternalLink, FileText, RefreshCw, TrendingUp, Users, Package, ShoppingBag } from 'lucide-react'
 import { SalesLineChart } from './SalesLineChart'
+import { BadReviewAnalysesPanel } from './BadReviewAnalysesPanel'
 import styles from './AdminDashboard.module.css'
 
 function formatClaimDate(value: string) {
@@ -31,13 +32,23 @@ export function AdminDashboard({
   refreshKey?: number
 }) {
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [statsError, setStatsError] = useState('')
   const [claims, setClaims] = useState<WarrantyClaim[]>([])
   const [claimsLoading, setClaimsLoading] = useState(true)
 
   useEffect(() => {
+    setStatsLoading(true)
+    setStatsError('')
     apiFetch<DashboardStats>('/api/admin/dashboard')
-      .then(setStats)
-      .catch(() => setStats(null))
+      .then((data) => {
+        setStats(data)
+      })
+      .catch((e) => {
+        setStats(null)
+        setStatsError(e instanceof Error ? e.message : 'Failed to load dashboard')
+      })
+      .finally(() => setStatsLoading(false))
   }, [refreshKey])
 
   const loadClaims = useCallback(async (showLoader = false) => {
@@ -103,8 +114,34 @@ export function AdminDashboard({
     window.setTimeout(() => URL.revokeObjectURL(url), 60000)
   }
 
-  if (!stats) {
+  if (statsLoading) {
     return <p className={styles.emptyText}>Loading dashboard...</p>
+  }
+
+  if (!stats) {
+    return (
+      <div>
+        <p className={styles.emptyText}>{statsError || 'Unable to load dashboard data.'}</p>
+        <button
+          type="button"
+          className={styles.refreshBtn}
+          onClick={() => {
+            setStatsLoading(true)
+            setStatsError('')
+            void apiFetch<DashboardStats>('/api/admin/dashboard')
+              .then(setStats)
+              .catch((e) => {
+                setStats(null)
+                setStatsError(e instanceof Error ? e.message : 'Failed to load dashboard')
+              })
+              .finally(() => setStatsLoading(false))
+          }}
+        >
+          <RefreshCw className="w-4 h-4 inline mr-1" />
+          Retry
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -139,7 +176,7 @@ export function AdminDashboard({
       <div className={styles.dashboardGrid}>
         <div className={styles.panel}>
           <p className={styles.panelTitle}>Overall Sales</p>
-          <SalesLineChart data={stats.salesChart} />
+          <SalesLineChart initialData={stats.salesChart} />
         </div>
 
         <div className={styles.panel}>
@@ -241,6 +278,8 @@ export function AdminDashboard({
           </div>
         )}
       </div>
+
+      <BadReviewAnalysesPanel refreshKey={refreshKey} />
     </div>
   )
 }

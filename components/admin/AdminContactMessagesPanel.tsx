@@ -99,9 +99,9 @@ export function AdminContactMessagesPanel({
     <div>
       <div className={styles.headerRow}>
         <div>
-          <h1 className={styles.pageTitle}>Send Us a Message</h1>
+          <h1 className={styles.pageTitle}>Ticket Generation</h1>
           <p className={styles.pageDesc}>
-            Customer inquiries submitted from the contact page. Refreshes every 10 seconds.
+            Support tickets submitted from the HDS Assistant chat widget. Refreshes every 10 seconds.
           </p>
         </div>
         <button type="button" className={styles.refreshBtn} onClick={() => loadMessages(true)}>
@@ -173,7 +173,7 @@ export function AdminContactMessagesPanel({
             {!loading && messages.length === 0 && (
               <tr>
                 <td colSpan={8} className={styles.empty}>
-                  No messages yet. Submissions from the customer contact form will appear here.
+                  No tickets yet. Submissions from the HDS Assistant chat widget will appear here.
                 </td>
               </tr>
             )}

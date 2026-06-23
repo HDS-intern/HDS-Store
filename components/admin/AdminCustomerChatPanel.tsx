@@ -1,31 +1,39 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Send } from 'lucide-react'
+import { Send, Trash2 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import type { ChatMessage, ChatThreadSummary } from '@/lib/chatTypes'
+import { CustomerDetailsModal } from '@/components/admin/CustomerDetailsModal'
 import styles from './AdminCustomerChatPanel.module.css'
 
 type AdminCustomerChatPanelProps = {
   onError?: (message: string) => void
+  onUnreadCountChange?: (count: number) => void
 }
 
-export function AdminCustomerChatPanel({ onError }: AdminCustomerChatPanelProps) {
+export function AdminCustomerChatPanel({ onError, onUnreadCountChange }: AdminCustomerChatPanelProps) {
   const [threads, setThreads] = useState<ChatThreadSummary[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null)
+  const [deletingThreadId, setDeletingThreadId] = useState<string | null>(null)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const loadThreads = useCallback(async () => {
     try {
-      const data = await apiFetch<{ threads: ChatThreadSummary[] }>('/api/admin/customer-chat')
+      const data = await apiFetch<{ threads: ChatThreadSummary[]; unreadCount: number }>(
+        '/api/admin/customer-chat'
+      )
       setThreads(data.threads)
+      onUnreadCountChange?.(data.unreadCount ?? 0)
     } catch (e) {
       onError?.(e instanceof Error ? e.message : 'Failed to load chats')
     }
-  }, [onError])
+  }, [onError, onUnreadCountChange])
 
   const loadConversation = useCallback(
     async (userId: string) => {
@@ -56,6 +64,10 @@ export function AdminCustomerChatPanel({ onError }: AdminCustomerChatPanelProps)
     return () => window.clearInterval(timer)
   }, [selectedUserId, loadConversation])
 
+  useEffect(() => {
+    setProfileOpen(false)
+  }, [selectedUserId])
+
   const sendReply = async () => {
     if (!selectedUserId || !draft.trim() || sending) return
     setSending(true)
@@ -71,6 +83,51 @@ export function AdminCustomerChatPanel({ onError }: AdminCustomerChatPanelProps)
       onError?.(e instanceof Error ? e.message : 'Failed to send reply')
     } finally {
       setSending(false)
+    }
+  }
+
+  const deleteMessage = async (messageId: string) => {
+    if (deletingMessageId || deletingThreadId) return
+    if (!window.confirm('Delete this message?')) return
+
+    setDeletingMessageId(messageId)
+    try {
+      const data = await apiFetch<{ unreadCount: number }>('/api/admin/customer-chat', {
+        method: 'DELETE',
+        body: JSON.stringify({ messageId }),
+      })
+      setMessages((prev) => prev.filter((message) => message.id !== messageId))
+      onUnreadCountChange?.(data.unreadCount ?? 0)
+      await loadThreads()
+    } catch (e) {
+      onError?.(e instanceof Error ? e.message : 'Failed to delete message')
+    } finally {
+      setDeletingMessageId(null)
+    }
+  }
+
+  const deleteThread = async (userId: string, customerName: string) => {
+    if (deletingMessageId || deletingThreadId) return
+    if (!window.confirm(`Delete the entire chat with ${customerName}?`)) return
+
+    setDeletingThreadId(userId)
+    try {
+      const data = await apiFetch<{ unreadCount: number }>('/api/admin/customer-chat', {
+        method: 'DELETE',
+        body: JSON.stringify({ userId }),
+      })
+      setThreads((prev) => prev.filter((thread) => thread.userId !== userId))
+      if (selectedUserId === userId) {
+        setSelectedUserId(null)
+        setMessages([])
+        setProfileOpen(false)
+      }
+      onUnreadCountChange?.(data.unreadCount ?? 0)
+      await loadThreads()
+    } catch (e) {
+      onError?.(e instanceof Error ? e.message : 'Failed to delete conversation')
+    } finally {
+      setDeletingThreadId(null)
     }
   }
 
@@ -91,20 +148,34 @@ export function AdminCustomerChatPanel({ onError }: AdminCustomerChatPanelProps)
             <p className={styles.empty}>No live support chats yet.</p>
           )}
           {threads.map((thread) => (
-            <button
+            <div
               key={thread.userId}
-              type="button"
-              className={`${styles.threadBtn} ${
-                selectedUserId === thread.userId ? styles.threadBtnActive : ''
+              className={`${styles.threadRow} ${
+                selectedUserId === thread.userId ? styles.threadRowActive : ''
               }`}
-              onClick={() => setSelectedUserId(thread.userId)}
             >
-              <span className={styles.threadName}>{thread.customerName}</span>
-              <span className={styles.threadPreview}>{thread.lastMessage}</span>
-              {thread.unreadCount > 0 && (
-                <span className={styles.threadBadge}>{thread.unreadCount}</span>
-              )}
-            </button>
+              <button
+                type="button"
+                className={styles.threadBtn}
+                onClick={() => setSelectedUserId(thread.userId)}
+              >
+                <span className={styles.threadName}>{thread.customerName}</span>
+                <span className={styles.threadPreview}>{thread.lastMessage}</span>
+                {thread.unreadCount > 0 && (
+                  <span className={styles.threadBadge}>{thread.unreadCount}</span>
+                )}
+              </button>
+              <button
+                type="button"
+                className={styles.threadDeleteBtn}
+                onClick={() => void deleteThread(thread.userId, thread.customerName)}
+                disabled={deletingThreadId === thread.userId}
+                aria-label={`Delete chat with ${thread.customerName}`}
+                title="Delete conversation"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           ))}
         </aside>
 
@@ -115,7 +186,13 @@ export function AdminCustomerChatPanel({ onError }: AdminCustomerChatPanelProps)
             <>
               <div className={styles.conversationHeader}>
                 <div>
-                  <p className={styles.customerName}>{selectedThread?.customerName}</p>
+                  <button
+                    type="button"
+                    className={styles.customerNameBtn}
+                    onClick={() => setProfileOpen(true)}
+                  >
+                    {selectedThread?.customerName}
+                  </button>
                   <p className={styles.customerEmail}>{selectedThread?.customerEmail}</p>
                 </div>
               </div>
@@ -124,15 +201,33 @@ export function AdminCustomerChatPanel({ onError }: AdminCustomerChatPanelProps)
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`${styles.message} ${
-                      message.sender === 'customer' ? styles.messageCustomer : styles.messageStaff
+                    className={`${styles.messageWrap} ${
+                      message.sender === 'customer'
+                        ? styles.messageWrapCustomer
+                        : styles.messageWrapStaff
                     }`}
                   >
-                    <p className={styles.messageBody}>{message.body}</p>
-                    <span className={styles.messageMeta}>
-                      {message.sender === 'customer' ? 'Customer' : 'You'} ·{' '}
-                      {new Date(message.createdAt).toLocaleString('en-IN')}
-                    </span>
+                    <div
+                      className={`${styles.message} ${
+                        message.sender === 'customer' ? styles.messageCustomer : styles.messageStaff
+                      }`}
+                    >
+                      <p className={styles.messageBody}>{message.body}</p>
+                      <span className={styles.messageMeta}>
+                        {message.sender === 'customer' ? 'Customer' : 'You'} ·{' '}
+                        {new Date(message.createdAt).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.deleteBtn}
+                      onClick={() => void deleteMessage(message.id)}
+                      disabled={deletingMessageId === message.id}
+                      aria-label="Delete message"
+                      title="Delete message"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -144,6 +239,12 @@ export function AdminCustomerChatPanel({ onError }: AdminCustomerChatPanelProps)
                   placeholder="Type your reply..."
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      void sendReply()
+                    }
+                  }}
                 />
                 <button
                   type="button"
@@ -159,6 +260,14 @@ export function AdminCustomerChatPanel({ onError }: AdminCustomerChatPanelProps)
           )}
         </section>
       </div>
+
+      {profileOpen && selectedUserId && (
+        <CustomerDetailsModal
+          userId={selectedUserId}
+          displayName={selectedThread?.customerName}
+          onClose={() => setProfileOpen(false)}
+        />
+      )}
     </div>
   )
 }

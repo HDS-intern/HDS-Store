@@ -56,29 +56,70 @@
   margin: 0 0 0.25rem;
 }
 
-.threadBtn {
-  position: relative;
+.threadRow {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.2rem;
-  width: 100%;
-  padding: 0.625rem 0.75rem;
+  align-items: stretch;
+  gap: 0.25rem;
   border: 1px solid transparent;
   border-radius: 0.625rem;
   background: rgba(15, 23, 42, 0.45);
+}
+
+.threadRow:hover {
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.threadRowActive {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(37, 99, 235, 0.15);
+}
+
+.threadBtn {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.625rem 0.75rem;
+  border: none;
+  border-radius: 0.625rem;
+  background: transparent;
   color: #e2e8f0;
   text-align: left;
   cursor: pointer;
 }
 
-.threadBtn:hover {
-  border-color: rgba(148, 163, 184, 0.18);
+.threadDeleteBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  margin: 0.35rem 0.35rem 0.35rem 0;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
-.threadBtnActive {
-  border-color: rgba(59, 130, 246, 0.35);
-  background: rgba(37, 99, 235, 0.15);
+.threadRow:hover .threadDeleteBtn,
+.threadDeleteBtn:focus-visible {
+  opacity: 1;
+}
+
+.threadDeleteBtn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.threadDeleteBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .threadName {
@@ -123,11 +164,21 @@
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
 }
 
-.customerName {
+.customerNameBtn {
   margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
   font-size: 0.9375rem;
   font-weight: 700;
   color: #f8fafc;
+  cursor: pointer;
+  text-align: left;
+}
+
+.customerNameBtn:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .customerEmail {
@@ -146,20 +197,35 @@
   gap: 0.625rem;
 }
 
+.messageWrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  max-width: 85%;
+}
+
+.messageWrapCustomer {
+  align-self: flex-start;
+}
+
+.messageWrapStaff {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
 .message {
-  max-width: 80%;
+  flex: 1;
+  min-width: 0;
   padding: 0.625rem 0.75rem;
   border-radius: 0.75rem;
 }
 
 .messageCustomer {
-  align-self: flex-start;
   background: rgba(51, 65, 85, 0.65);
   color: #e2e8f0;
 }
 
 .messageStaff {
-  align-self: flex-end;
   background: rgba(37, 99, 235, 0.2);
   color: #dbeafe;
 }
@@ -176,6 +242,38 @@
   margin-top: 0.25rem;
   font-size: 0.625rem;
   opacity: 0.75;
+}
+
+.deleteBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: 0.15rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.messageWrap:hover .deleteBtn,
+.deleteBtn:focus-visible {
+  opacity: 1;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.deleteBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .composer {

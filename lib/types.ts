@@ -191,3 +191,31 @@ export interface ReturnRequest {
   documentName: string
   createdAt: string
 }
+
+export interface BadReviewChartMonth {
+  key: string
+  month: string
+  badReviews: number
+  totalReviews: number
+}
+
+export interface BadReviewProductSummary {
+  productId: string
+  productName: string
+  badReviewCount: number
+  totalReviewCount: number
+}
+
+export interface BadReviewEntry {
+  id: string
+  userId: string | null
+  customerName: string
+  customerEmail: string | null
+  productId: string
+  productName: string
+  rating: number
+  title: string
+  comment: string
+  createdAt: string
+  orderId?: string
+}

@@ -66,7 +66,7 @@ import {
   ClipboardList,
   FileSpreadsheet,
   FileText,
-  MessageSquare,
+  Ticket,
   MessageCircle,
   Hash,
   TrendingUp,
@@ -454,6 +454,7 @@ export default function AdminPage() {
   const [activeToastNotification, setActiveToastNotification] =
     useState<AdminOrderNotification | null>(null)
   const [unreadContactCount, setUnreadContactCount] = useState(0)
+  const [unreadCustomerChatCount, setUnreadCustomerChatCount] = useState(0)
   const [contactToastQueue, setContactToastQueue] = useState<ContactMessageNotification[]>([])
   const [activeContactToast, setActiveContactToast] = useState<ContactMessageNotification | null>(
     null
@@ -614,6 +615,16 @@ export default function AdminPage() {
     }
   }, [])
 
+  const loadCustomerChatUnread = useCallback(async () => {
+    if (!user || (user.role !== 'admin' && user.role !== 'staff')) return
+    try {
+      const data = await apiFetch<{ unreadCount: number }>('/api/admin/customer-chat')
+      setUnreadCustomerChatCount(data.unreadCount ?? 0)
+    } catch {
+      // staff/admin endpoint
+    }
+  }, [user])
+
   const loadUsers = useCallback(async () => {
     if (!user || !hasPermission(user, 'users_manage')) return
     try {
@@ -644,7 +655,17 @@ export default function AdminPage() {
     loadUsers()
     loadBulkConfirmations()
     loadContactMessages()
-  }, [user, authLoading, router, loadOrders, loadUsers, loadBulkConfirmations, loadContactMessages])
+    loadCustomerChatUnread()
+  }, [
+    user,
+    authLoading,
+    router,
+    loadOrders,
+    loadUsers,
+    loadBulkConfirmations,
+    loadContactMessages,
+    loadCustomerChatUnread,
+  ])
 
   useEffect(() => {
     if (!activeNotification && notificationQueue.length > 0) {
@@ -724,6 +745,29 @@ export default function AdminPage() {
       window.removeEventListener('focus', onVisible)
     }
   }, [authLoading, user, loadContactMessages])
+
+  useEffect(() => {
+    if (authLoading || !user || (user.role !== 'admin' && user.role !== 'staff')) return
+
+    const interval = window.setInterval(() => {
+      void loadCustomerChatUnread()
+    }, 10000)
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void loadCustomerChatUnread()
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+  }, [authLoading, user, loadCustomerChatUnread])
 
   useEffect(() => {
     if (tab !== 'messages' || user?.role !== 'admin') return
@@ -1014,7 +1058,7 @@ export default function AdminPage() {
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'users', label: 'System Users', icon: Users },
     { id: 'staff-data', label: 'Staff Records', icon: ClipboardList },
-    { id: 'messages', label: 'Send Us a Message', icon: MessageSquare },
+    { id: 'messages', label: 'Ticket Generation', icon: Ticket },
     { id: 'customer-chat', label: 'Customer Chat', icon: MessageCircle },
     { id: 'template', label: 'Edit Template', icon: FileSpreadsheet },
   ].filter((item) => {
@@ -1032,9 +1076,11 @@ export default function AdminPage() {
     if (item.id === 'customer-chat') return user.role === 'admin' || user.role === 'staff'
     if (item.id === 'template') return isFullAdmin
     return true
-  }).map((item) =>
-    item.id === 'messages' ? { ...item, badgeCount: unreadContactCount } : item
-  )
+  }).map((item) => {
+    if (item.id === 'messages') return { ...item, badgeCount: unreadContactCount }
+    if (item.id === 'customer-chat') return { ...item, badgeCount: unreadCustomerChatCount }
+    return item
+  })
 
   const dismissNotification = () => setActiveNotification(null)
 
@@ -1414,7 +1460,7 @@ export default function AdminPage() {
                         </td>
                         <td>
                           <select
-                            className={styles.select}
+                            className="hds-select-dark hds-select-compact"
                             value={order.paymentStatus}
                             disabled={!canManagePayments}
                             onChange={(e) =>
@@ -1720,7 +1766,10 @@ export default function AdminPage() {
           )}
 
           {tab === 'customer-chat' && (
-            <AdminCustomerChatPanel onError={setError} />
+            <AdminCustomerChatPanel
+              onError={setError}
+              onUnreadCountChange={setUnreadCustomerChatCount}
+            />
           )}
 
           {tab === 'template' && isFullAdmin && (

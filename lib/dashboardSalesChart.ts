@@ -1,4 +1,5 @@
 import type { Database } from 'better-sqlite3'
+import type { SalesChartFilter } from './salesChartFilter'
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -22,9 +23,16 @@ type OrderRow = {
   warranty_claim_qty: number | null
 }
 
+type BucketDef = { key: string; label: string; granularity: 'day' | 'month' }
+
 function monthLabel(ym: string): string {
   const [year, month] = ym.split('-')
   return `${MONTH_NAMES[parseInt(month, 10) - 1]} ${year}`
+}
+
+function dayLabel(ymd: string): string {
+  const [, month, day] = ymd.split('-')
+  return `${parseInt(day, 10)} ${MONTH_NAMES[parseInt(month, 10) - 1]}`
 }
 
 function itemQuantity(itemsJson: string): number {
@@ -37,10 +45,10 @@ function itemQuantity(itemsJson: string): number {
   }
 }
 
-function emptyMonth(ym: string): SalesChartMonth {
+function emptyBucket(def: BucketDef): SalesChartMonth {
   return {
-    key: ym,
-    month: monthLabel(ym),
+    key: def.key,
+    month: def.label,
     credited: 0,
     refunds: 0,
     soldProducts: 0,
@@ -59,10 +67,90 @@ function lastMonths(count: number): string[] {
   return keys
 }
 
-export function buildSalesChartData(db: Database.Database, monthCount = 6): SalesChartMonth[] {
-  const monthKeys = lastMonths(monthCount)
-  const fromDate = `${monthKeys[0]}-01`
+function addMonths(ym: string, delta: number): string {
+  const [year, month] = ym.split('-').map(Number)
+  const d = new Date(year, month - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
 
+function monthKeysBetween(startYm: string, endYm: string): string[] {
+  const keys: string[] = []
+  let current = startYm
+  while (current <= endYm) {
+    keys.push(current)
+    if (current === endYm) break
+    current = addMonths(current, 1)
+  }
+  return keys
+}
+
+function daysBetween(start: string, end: string): number {
+  const startMs = new Date(`${start}T12:00:00`).getTime()
+  const endMs = new Date(`${end}T12:00:00`).getTime()
+  return Math.floor((endMs - startMs) / 86400000) + 1
+}
+
+function addDays(ymd: string, delta: number): string {
+  const d = new Date(`${ymd}T12:00:00`)
+  d.setDate(d.getDate() + delta)
+  return d.toISOString().slice(0, 10)
+}
+
+function dayKeysBetween(start: string, end: string): string[] {
+  const keys: string[] = []
+  let current = start
+  while (current <= end) {
+    keys.push(current)
+    if (current === end) break
+    current = addDays(current, 1)
+  }
+  return keys
+}
+
+function fyRangeToDates(startFy: number, endFy: number): { startDate: string; endDate: string } {
+  return {
+    startDate: `${startFy}-04-01`,
+    endDate: `${endFy + 1}-03-31`,
+  }
+}
+
+function resolveBuckets(filter: SalesChartFilter): BucketDef[] {
+  if (filter.type === 'month') {
+    const keys = monthKeysBetween(filter.start, filter.end)
+    return keys.map((key) => ({ key, label: monthLabel(key), granularity: 'month' }))
+  }
+
+  if (filter.type === 'fy') {
+    const startFy = Number(filter.start)
+    const endFy = Number(filter.end)
+    const { startDate, endDate } = fyRangeToDates(startFy, endFy)
+    const startYm = startDate.slice(0, 7)
+    const endYm = endDate.slice(0, 7)
+    const keys = monthKeysBetween(startYm, endYm)
+    return keys.map((key) => ({ key, label: monthLabel(key), granularity: 'month' }))
+  }
+
+  const spanDays = daysBetween(filter.start, filter.end)
+  if (spanDays <= 62) {
+    const keys = dayKeysBetween(filter.start, filter.end)
+    return keys.map((key) => ({ key, label: dayLabel(key), granularity: 'day' }))
+  }
+
+  const startYm = filter.start.slice(0, 7)
+  const endYm = filter.end.slice(0, 7)
+  const keys = monthKeysBetween(startYm, endYm)
+  return keys.map((key) => ({ key, label: monthLabel(key), granularity: 'month' }))
+}
+
+function bucketKeyForRow(createdAt: string, granularity: 'day' | 'month'): string {
+  return granularity === 'day' ? createdAt.slice(0, 10) : createdAt.slice(0, 7)
+}
+
+function aggregateOrders(
+  db: Database.Database,
+  buckets: BucketDef[],
+  fromDate: string
+): Map<string, SalesChartMonth> {
   const rows = db
     .prepare(
       `SELECT items, total, status, payment_status, created_at, returned_qty, warranty_claim_qty
@@ -71,23 +159,14 @@ export function buildSalesChartData(db: Database.Database, monthCount = 6): Sale
     )
     .all(fromDate) as OrderRow[]
 
-  const warrantyByMonth = db
-    .prepare(
-      `SELECT strftime('%Y-%m', created_at) as ym, COUNT(*) as c
-       FROM contact_messages
-       WHERE LOWER(subject) LIKE '%warranty%'
-         AND created_at >= ?
-       GROUP BY ym`
-    )
-    .all(fromDate) as { ym: string; c: number }[]
-
-  const warrantyMap = new Map(warrantyByMonth.map((r) => [r.ym, r.c]))
-
-  const map = new Map(monthKeys.map((key) => [key, emptyMonth(key)]))
+  const granularity = buckets[0]?.granularity ?? 'month'
+  const map = new Map(buckets.map((bucket) => [bucket.key, emptyBucket(bucket)]))
+  const bucketKeys = new Set(buckets.map((b) => b.key))
 
   for (const row of rows) {
-    const ym = row.created_at.slice(0, 7)
-    const bucket = map.get(ym)
+    const key = bucketKeyForRow(row.created_at, granularity)
+    if (!bucketKeys.has(key)) continue
+    const bucket = map.get(key)
     if (!bucket) continue
 
     const qty = itemQuantity(row.items)
@@ -109,10 +188,55 @@ export function buildSalesChartData(db: Database.Database, monthCount = 6): Sale
     bucket.warrantyClaimed += row.warranty_claim_qty ?? 0
   }
 
-  for (const [ym, count] of warrantyMap) {
-    const bucket = map.get(ym)
-    if (bucket) bucket.warrantyClaimed += count
-  }
+  return map
+}
 
-  return monthKeys.map((key) => map.get(key)!)
+function aggregateWarrantyClaims(
+  db: Database.Database,
+  map: Map<string, SalesChartMonth>,
+  buckets: BucketDef[],
+  fromDate: string
+) {
+  const granularity = buckets[0]?.granularity ?? 'month'
+  const bucketKeys = new Set(buckets.map((b) => b.key))
+
+  const warrantyRows = db
+    .prepare(
+      `SELECT created_at
+       FROM contact_messages
+       WHERE LOWER(subject) LIKE '%warranty%'
+         AND created_at >= ?`
+    )
+    .all(fromDate) as { created_at: string }[]
+
+  for (const row of warrantyRows) {
+    const key = bucketKeyForRow(row.created_at, granularity)
+    if (!bucketKeys.has(key)) continue
+    const bucket = map.get(key)
+    if (bucket) bucket.warrantyClaimed += 1
+  }
+}
+
+export function buildSalesChartData(
+  db: Database.Database,
+  filter?: SalesChartFilter | null,
+  defaultMonthCount = 6
+): SalesChartMonth[] {
+  const effectiveBuckets = filter
+    ? resolveBuckets(filter)
+    : lastMonths(defaultMonthCount).map((key) => ({
+        key,
+        label: monthLabel(key),
+        granularity: 'month' as const,
+      }))
+
+  const fromDate =
+    effectiveBuckets[0]?.granularity === 'day'
+      ? `${effectiveBuckets[0].key}T00:00:00`
+      : `${effectiveBuckets[0]?.key ?? '2000-01'}-01`
+
+  const map = aggregateOrders(db, effectiveBuckets, fromDate)
+  aggregateWarrantyClaims(db, map, effectiveBuckets, fromDate)
+
+  return effectiveBuckets.map((bucket) => map.get(bucket.key) ?? emptyBucket(bucket))
 }

@@ -255,7 +255,7 @@ export function StaffRecordsPanel({ onMessage, onError, onStaffCreated }: Props)
               <div>
                 <label className={styles.label}>Work Status</label>
                 <select
-                  className={styles.select}
+                  className="hds-select-dark"
                   value={form.workStatus || 'live'}
                   onChange={(e) =>
                     setForm({

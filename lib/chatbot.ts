@@ -1,8 +1,8 @@
 const GREETING =
-  'Hello! I am the HDS AI assistant. Ask me about products, orders, shipping, warranty, or returns. For a real person, tap **Live Support** or **Connect to Live Support** above.'
+  'Hello! I am the HDS AI assistant. Ask me about products, orders, shipping, warranty, or returns. For help from our team, tap **Ticket Generation** or **Open Ticket Generation** above.'
 
 const FALLBACK =
-  'I can help with orders, shipping, warranty, returns, payments, and contact details. For personal help, switch to **Live Support** in this chat and our team will reply here. You can also email info@hds-india.com or call +91-99401-99407.'
+  'I can help with orders, shipping, warranty, returns, payments, and contact details. For personal help, switch to **Ticket Generation** in this chat and submit a support ticket. You can also email info@hds-india.com or call +91-99401-99407.'
 
 type BotRule = {
   keywords: string[]
@@ -41,14 +41,14 @@ const RULES: BotRule[] = [
       'Use the **Bulk Order Sheet** page to upload a template with model numbers and quantities. Our team will confirm stock and pricing.',
   },
   {
-    keywords: ['live support', 'live chat', 'talk to', 'speak to', 'representative'],
+    keywords: ['ticket', 'support ticket', 'live chat', 'talk to', 'speak to', 'representative'],
     reply:
-      'Tap **Connect to Live Support** above, or switch to the **Live Support** tab. Our team will reply in this same chat window.',
+      'Tap **Open Ticket Generation** above, or switch to the **Ticket Generation** tab to submit a support request. Our team will respond within one business day.',
   },
   {
     keywords: ['contact', 'phone', 'email', 'call', 'support', 'human', 'agent', 'live'],
     reply:
-      'Reach HDS at **info@hds-india.com** or **+91-99401-99407**. For live help, tap **Live Support** at the top of this chat — our team will reply right here.',
+      'Reach HDS at **info@hds-india.com** or **+91-99401-99407**. For help from our team, use **Ticket Generation** at the top of this chat to submit a support ticket.',
   },
   {
     keywords: ['address', 'location', 'office'],

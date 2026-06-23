@@ -193,6 +193,56 @@
   gap: 1.25rem;
 }
 
+.ticketCallout {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 1);
+  border: 1px solid rgba(53, 106, 176, 0.15);
+  box-shadow: 0 8px 32px rgba(53, 106, 176, 0.08);
+}
+
+.ticketCalloutIcon {
+  flex-shrink: 0;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.875rem;
+  background: rgba(53, 106, 176, 0.1);
+  color: rgba(53, 106, 176, 1);
+}
+
+.ticketCalloutTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: rgba(53, 106, 176, 1);
+  margin: 0 0 0.35rem;
+}
+
+.ticketCalloutText {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: rgba(71, 85, 105, 1);
+}
+
+.infoOnlyGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .infoOnlyGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .infoCard {
   display: flex;
   gap: 1rem;

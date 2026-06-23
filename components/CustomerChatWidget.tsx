@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Bot, Headphones, MessageCircle, Send, UserRound, X } from 'lucide-react'
+import { Bot, MessageCircle, Send, Ticket, X } from 'lucide-react'
 import { useApp } from '@/lib/context'
 import { apiFetch } from '@/lib/api'
-import type { ChatChannel, ChatMessage } from '@/lib/chatTypes'
+import { TICKET_SUBJECT_OPTIONS } from '@/lib/ticketSubjects'
+import type { ChatMessage } from '@/lib/chatTypes'
 import styles from './CustomerChatWidget.module.css'
+
+type WidgetTab = 'bot' | 'ticket'
 
 function formatBody(text: string) {
   return text.replace(/\*\*(.*?)\*\*/g, '$1')
@@ -19,26 +22,30 @@ function formatTime(value: string) {
   })
 }
 
-function senderLabel(sender: ChatMessage['sender'], channel: ChatChannel) {
-  if (sender === 'bot') return 'HDS AI Assistant'
-  if (sender === 'staff') return 'Live Support'
-  return channel === 'support' ? 'You' : 'You'
-}
+const TICKET_HINT =
+  'Need help from our team? Open Ticket Generation and submit your request — we will respond within one business day.'
 
-const LIVE_SUPPORT_HINT =
-  'Need a real person? Switch to Live Support and our team will reply here.'
+const emptyTicketForm = (name = '', email = '') => ({
+  name,
+  email,
+  phone: '',
+  subject: TICKET_SUBJECT_OPTIONS[0],
+  message: '',
+})
 
 export function CustomerChatWidget() {
   const pathname = usePathname()
   const { user, authLoading } = useApp()
   const [open, setOpen] = useState(false)
-  const [channel, setChannel] = useState<ChatChannel>('bot')
+  const [tab, setTab] = useState<WidgetTab>('bot')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
-  const [unreadSupport, setUnreadSupport] = useState(0)
   const [notice, setNotice] = useState<string | null>(null)
+  const [ticketForm, setTicketForm] = useState(emptyTicketForm())
+  const [ticketSubmitting, setTicketSubmitting] = useState(false)
+  const [ticketSuccess, setTicketSuccess] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const isStaffOrAdmin = user?.role === 'admin' || user?.role === 'staff'
@@ -54,95 +61,57 @@ export function CustomerChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  const loadMessages = useCallback(
-    async (silent = false) => {
-      if (!canUseChat) return
-      if (!silent) setLoading(true)
-      try {
-        const data = await apiFetch<{ messages: ChatMessage[]; unreadSupport: number }>(
-          `/api/chat?channel=${channel}`
-        )
-        setMessages(data.messages)
-        if (channel === 'support' && open) {
-          setUnreadSupport(0)
-        } else if (channel === 'bot') {
-          setUnreadSupport(data.unreadSupport)
-        }
-      } catch {
-        if (!silent) setMessages([])
-      } finally {
-        if (!silent) setLoading(false)
-      }
-    },
-    [canUseChat, channel, open]
-  )
+  const loadBotMessages = useCallback(async () => {
+    if (!canUseChat) return
+    setLoading(true)
+    try {
+      const data = await apiFetch<{ messages: ChatMessage[] }>('/api/chat?channel=bot')
+      setMessages(data.messages)
+    } catch {
+      setMessages([])
+    } finally {
+      setLoading(false)
+    }
+  }, [canUseChat])
 
-  const switchToLiveSupport = useCallback(() => {
-    setChannel('support')
+  const switchToTicketGeneration = useCallback(() => {
+    setTab('ticket')
     setNotice(null)
-    setUnreadSupport(0)
-  }, [])
+    setTicketSuccess(false)
+    setTicketForm((prev) => ({
+      ...prev,
+      name: user?.name?.replace(/\s+customer$/i, '').trim() || prev.name,
+      email: user?.email || prev.email,
+    }))
+  }, [user?.email, user?.name])
 
   useEffect(() => {
-    if (!open || !canUseChat) return
-    void loadMessages()
-  }, [open, canUseChat, channel, loadMessages])
-
-  useEffect(() => {
-    if (!open || !canUseChat || channel !== 'support') return
-    const timer = window.setInterval(() => {
-      void loadMessages(true)
-    }, 5000)
-    return () => window.clearInterval(timer)
-  }, [open, canUseChat, channel, loadMessages])
+    if (!open || !canUseChat || tab !== 'bot') return
+    void loadBotMessages()
+  }, [open, canUseChat, tab, loadBotMessages])
 
   useEffect(() => {
     if (!open) return
-    scrollToBottom()
-  }, [messages, open, scrollToBottom])
+    if (tab === 'bot') scrollToBottom()
+  }, [messages, open, tab, scrollToBottom])
 
-  useEffect(() => {
-    if (!canUseChat) return
-
-    const pollUnread = async () => {
-      try {
-        const data = await apiFetch<{ unreadSupport: number }>(
-          '/api/chat?channel=support&countOnly=1'
-        )
-        if (!open || channel !== 'support') {
-          setUnreadSupport(data.unreadSupport)
-        }
-      } catch {
-        // ignore polling errors
-      }
-    }
-
-    void pollUnread()
-    const timer = window.setInterval(pollUnread, 8000)
-    return () => window.clearInterval(timer)
-  }, [canUseChat, open, channel])
-
-  const sendMessage = async () => {
+  const sendBotMessage = async () => {
     const text = draft.trim()
-    if (!text || sending) return
+    if (!text || sending || tab !== 'bot') return
 
     setSending(true)
     setNotice(null)
     try {
-      const data = await apiFetch<{
-        messages: ChatMessage[]
-        notice?: string
-      }>('/api/chat', {
+      const data = await apiFetch<{ messages: ChatMessage[] }>('/api/chat', {
         method: 'POST',
-        body: JSON.stringify({ channel, message: text }),
+        body: JSON.stringify({ channel: 'bot', message: text }),
       })
       setMessages((prev) => [...prev, ...data.messages])
       setDraft('')
-      if (data.notice) setNotice(data.notice)
 
-      const wantsHuman = /live support|human|agent|real person|talk to someone/i.test(text)
-      if (channel === 'bot' && wantsHuman) {
-        setNotice('You can connect with our team using Live Support above.')
+      const wantsTicket = /ticket|support|human|agent|real person|contact team/i.test(text)
+      if (wantsTicket) {
+        setNotice('You can submit a support ticket using Ticket Generation above.')
       }
     } catch {
       setNotice('Unable to send message. Please try again.')
@@ -151,9 +120,49 @@ export function CustomerChatWidget() {
     }
   }
 
-  if (!canUseChat) return null
+  const submitTicket = async () => {
+    const name = ticketForm.name.trim()
+    const email = ticketForm.email.trim()
+    const message = ticketForm.message.trim()
 
-  const showBadge = unreadSupport > 0 && !open
+    if (!name || !email || !message) {
+      setNotice('Name, email, and message are required for ticket generation.')
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setNotice('Please enter a valid email address.')
+      return
+    }
+
+    if (message.length < 10) {
+      setNotice('Message must be at least 10 characters.')
+      return
+    }
+
+    setTicketSubmitting(true)
+    setNotice(null)
+    try {
+      await apiFetch('/api/contact', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          email,
+          phone: ticketForm.phone.trim() || undefined,
+          subject: ticketForm.subject,
+          message,
+        }),
+      })
+      setTicketSuccess(true)
+      setTicketForm(emptyTicketForm(user?.name?.replace(/\s+customer$/i, '').trim() || '', user?.email || ''))
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'Failed to generate ticket. Please try again.')
+    } finally {
+      setTicketSubmitting(false)
+    }
+  }
+
+  if (!canUseChat) return null
 
   return (
     <div className={styles.customerChatWrap} aria-live="polite">
@@ -163,11 +172,11 @@ export function CustomerChatWidget() {
             <div>
               <h2 className={styles.headerTitle}>HDS Assistant</h2>
               <p className={styles.headerSub}>
-                {channel === 'bot'
+                {tab === 'bot'
                   ? isGuest
-                    ? 'AI help + live support — no login required'
-                    : 'AI answers instantly, or chat with our team'
-                  : 'Live support — our team replies here'}
+                    ? 'AI help + ticket generation — no login required'
+                    : 'AI answers instantly, or generate a support ticket'
+                  : 'Submit a ticket — our team will respond within one business day'}
               </p>
             </div>
             <button
@@ -183,9 +192,9 @@ export function CustomerChatWidget() {
           <div className={styles.tabs}>
             <button
               type="button"
-              className={channel === 'bot' ? styles.tabActive : styles.tab}
+              className={tab === 'bot' ? styles.tabActive : styles.tab}
               onClick={() => {
-                setChannel('bot')
+                setTab('bot')
                 setNotice(null)
               }}
             >
@@ -194,94 +203,170 @@ export function CustomerChatWidget() {
             </button>
             <button
               type="button"
-              className={channel === 'support' ? styles.tabActive : styles.tab}
-              onClick={switchToLiveSupport}
+              className={tab === 'ticket' ? styles.tabActive : styles.tab}
+              onClick={switchToTicketGeneration}
             >
-              <UserRound className="w-4 h-4" />
-              Live Support
-              {unreadSupport > 0 && channel !== 'support' && (
-                <span className={styles.tabBadge}>{unreadSupport > 9 ? '9+' : unreadSupport}</span>
-              )}
+              <Ticket className="w-4 h-4" />
+              Ticket Generation
             </button>
           </div>
 
-          {channel === 'bot' && (
-            <div className={styles.liveSupportBanner}>
-              <p className={styles.liveSupportText}>{LIVE_SUPPORT_HINT}</p>
-              <button type="button" className={styles.liveSupportBtn} onClick={switchToLiveSupport}>
-                <Headphones className="w-4 h-4" />
-                Connect to Live Support
+          {tab === 'bot' && (
+            <div className={styles.ticketBanner}>
+              <p className={styles.ticketBannerText}>{TICKET_HINT}</p>
+              <button type="button" className={styles.ticketBannerBtn} onClick={switchToTicketGeneration}>
+                <Ticket className="w-4 h-4" />
+                Open Ticket Generation
               </button>
             </div>
           )}
 
-          <div className={styles.messages}>
-            {loading && <p className={styles.notice}>Loading conversation...</p>}
-            {!loading && messages.length === 0 && channel === 'support' && (
-              <p className={styles.notice}>
-                Send a message and our support team will respond shortly during business hours.
-              </p>
-            )}
-            {!loading &&
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`${styles.messageRow} ${
-                    message.sender === 'customer'
-                      ? styles.messageRowCustomer
-                      : message.sender === 'staff'
-                        ? styles.messageRowStaff
-                        : styles.messageRowBot
-                  }`}
-                >
-                  <div
-                    className={`${styles.bubble} ${
-                      message.sender === 'customer'
-                        ? styles.bubbleCustomer
-                        : message.sender === 'staff'
-                          ? styles.bubbleStaff
-                          : styles.bubbleBot
-                    }`}
-                  >
-                    {formatBody(message.body)}
-                    <span className={styles.meta}>
-                      {senderLabel(message.sender, channel)} · {formatTime(message.createdAt)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            {notice && <p className={styles.notice}>{notice}</p>}
-            <div ref={messagesEndRef} />
-          </div>
+          {tab === 'bot' ? (
+            <>
+              <div className={styles.messages}>
+                {loading && <p className={styles.notice}>Loading conversation...</p>}
+                {!loading &&
+                  messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`${styles.messageRow} ${
+                        message.sender === 'customer'
+                          ? styles.messageRowCustomer
+                          : styles.messageRowBot
+                      }`}
+                    >
+                      <div
+                        className={`${styles.bubble} ${
+                          message.sender === 'customer' ? styles.bubbleCustomer : styles.bubbleBot
+                        }`}
+                      >
+                        {formatBody(message.body)}
+                        <span className={styles.meta}>
+                          {message.sender === 'customer' ? 'You' : 'HDS AI Assistant'} ·{' '}
+                          {formatTime(message.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                {notice && <p className={styles.notice}>{notice}</p>}
+                <div ref={messagesEndRef} />
+              </div>
 
-          <div className={styles.composer}>
-            <textarea
-              className={styles.input}
-              rows={1}
-              placeholder={
-                channel === 'bot'
-                  ? 'Ask the AI about orders, shipping, warranty...'
-                  : 'Message our live support team...'
-              }
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  void sendMessage()
-                }
-              }}
-            />
-            <button
-              type="button"
-              className={styles.sendBtn}
-              onClick={() => void sendMessage()}
-              disabled={sending || !draft.trim()}
-              aria-label="Send message"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
+              <div className={styles.composer}>
+                <textarea
+                  className={styles.input}
+                  rows={1}
+                  placeholder="Ask the AI about orders, shipping, warranty..."
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      void sendBotMessage()
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className={styles.sendBtn}
+                  onClick={() => void sendBotMessage()}
+                  disabled={sending || !draft.trim()}
+                  aria-label="Send message"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className={styles.ticketPanel}>
+              {ticketSuccess ? (
+                <div className={styles.ticketSuccess}>
+                  <p className={styles.ticketSuccessTitle}>Ticket generated successfully</p>
+                  <p className={styles.ticketSuccessText}>
+                    Thank you for reaching out. Our team will respond to your inquiry within one
+                    business day.
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.ticketBannerBtn}
+                    onClick={() => {
+                      setTicketSuccess(false)
+                      switchToTicketGeneration()
+                    }}
+                  >
+                    Generate another ticket
+                  </button>
+                </div>
+              ) : (
+                <form
+                  className={styles.ticketForm}
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    void submitTicket()
+                  }}
+                >
+                  <label className={styles.ticketField}>
+                    <span>Full Name *</span>
+                    <input
+                      type="text"
+                      value={ticketForm.name}
+                      onChange={(e) => setTicketForm((prev) => ({ ...prev, name: e.target.value }))}
+                      placeholder="Your name"
+                      required
+                    />
+                  </label>
+                  <label className={styles.ticketField}>
+                    <span>Email *</span>
+                    <input
+                      type="email"
+                      value={ticketForm.email}
+                      onChange={(e) => setTicketForm((prev) => ({ ...prev, email: e.target.value }))}
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </label>
+                  <label className={styles.ticketField}>
+                    <span>Phone</span>
+                    <input
+                      type="tel"
+                      value={ticketForm.phone}
+                      onChange={(e) => setTicketForm((prev) => ({ ...prev, phone: e.target.value }))}
+                      placeholder="+91 99401 99407"
+                    />
+                  </label>
+                  <label className={styles.ticketField}>
+                    <span>Subject *</span>
+                    <select
+                      className="hds-select"
+                      value={ticketForm.subject}
+                      onChange={(e) => setTicketForm((prev) => ({ ...prev, subject: e.target.value }))}
+                    >
+                      {TICKET_SUBJECT_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={styles.ticketField}>
+                    <span>Message *</span>
+                    <textarea
+                      rows={4}
+                      value={ticketForm.message}
+                      onChange={(e) => setTicketForm((prev) => ({ ...prev, message: e.target.value }))}
+                      placeholder="Describe your issue or request..."
+                      required
+                    />
+                  </label>
+                  {notice && <p className={styles.ticketError}>{notice}</p>}
+                  <button type="submit" className={styles.ticketSubmitBtn} disabled={ticketSubmitting}>
+                    <Send className="w-4 h-4" />
+                    {ticketSubmitting ? 'Submitting...' : 'Generate Ticket'}
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -294,11 +379,6 @@ export function CustomerChatWidget() {
       >
         {!open && <span className={styles.launcherRing} aria-hidden="true" />}
         {open ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
-        {showBadge && (
-          <span className={styles.badge} aria-label={`${unreadSupport} unread support messages`}>
-            {unreadSupport > 9 ? '9+' : unreadSupport}
-          </span>
-        )}
       </button>
     </div>
   )

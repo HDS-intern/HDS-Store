@@ -614,7 +614,7 @@ export default function CheckoutPage() {
                           required
                           value={netBankingBank}
                           onChange={(e) => setNetBankingBank(e.target.value)}
-                          className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                          className="hds-select"
                         >
                           <option value="">Choose a bank</option>
                           {NET_BANKING_BANKS.map((bank) => (

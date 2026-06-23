@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, FormEvent, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Header } from '@/components/Header'
@@ -12,11 +12,10 @@ import {
   Phone,
   MapPin,
   Clock,
-  Send,
   MessageSquare,
+  Ticket,
 } from 'lucide-react'
 import styles from './page.module.css'
-import { apiFetch } from '@/lib/api'
 
 const BUSINESS_HOURS = [
   { day: 'Monday – Friday', hours: '8:00 AM – 6:00 PM' },
@@ -24,25 +23,16 @@ const BUSINESS_HOURS = [
   { day: 'Sunday', hours: 'Closed' },
 ]
 
-const SUBJECT_OPTIONS = [
-  'General Inquiry',
-  'Product Information',
-  'Technical Support',
-  'Bulk / Enterprise Orders',
-  'Partnership Opportunities',
-  'Warranty & Repairs',
-]
-
 const FAQ_ITEMS = [
   {
     question: 'What is the typical response time for inquiries?',
     answer:
-      'We respond to all inquiries within one business day. Urgent technical support requests are prioritized and typically answered within 4 hours during business hours.',
+      'We respond to all support tickets within one business day. Urgent technical support requests are prioritized and typically answered within 4 hours during business hours.',
   },
   {
     question: 'Do you offer enterprise or bulk pricing?',
     answer:
-      'Yes. For government contracts, bulk orders, or custom configurations, contact us at info@hds-india.com or select "Bulk / Enterprise Orders" in the form.',
+      'Yes. For government contracts, bulk orders, or custom configurations, contact us at info@hds-india.com or select "Bulk / Enterprise Orders" when generating a ticket.',
   },
   {
     question: 'Where do you ship internationally?',
@@ -52,12 +42,12 @@ const FAQ_ITEMS = [
   {
     question: 'How can I get technical support for my drone?',
     answer:
-      'Email info@hds-india.com with your order number and product model. Our technical team provides troubleshooting, firmware updates, and repair guidance.',
+      'Open the HDS Assistant chat on any store page, go to Ticket Generation, and submit your request with your order number and product model.',
   },
   {
     question: 'Can I schedule a product demo?',
     answer:
-      'Absolutely. Select "Product Information" as your subject and mention that you would like a demo. Our sales team will arrange a virtual or in-person demonstration.',
+      'Absolutely. Generate a ticket with "Product Information" as the subject and mention that you would like a demo. Our sales team will arrange a virtual or in-person demonstration.',
   },
 ]
 
@@ -93,84 +83,8 @@ function LinkedInIcon() {
   )
 }
 
-type FormErrors = {
-  name?: string
-  email?: string
-  message?: string
-}
-
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    subject: SUBJECT_OPTIONS[0],
-    message: '',
-  })
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const [submitError, setSubmitError] = useState('')
   const [openFaq, setOpenFaq] = useState<number | null>(0)
-
-  useEffect(() => {
-    const raw = sessionStorage.getItem('hds-contact-prefill')
-    if (!raw) return
-    try {
-      const { subject, message } = JSON.parse(raw) as { subject?: string; message?: string }
-      setFormData((prev) => ({
-        ...prev,
-        subject: subject || prev.subject,
-        message: message || prev.message,
-      }))
-      sessionStorage.removeItem('hds-contact-prefill')
-    } catch {
-      sessionStorage.removeItem('hds-contact-prefill')
-    }
-  }, [])
-
-  const validate = (): boolean => {
-    const next: FormErrors = {}
-    if (!formData.name.trim()) next.name = 'Name is required'
-    if (!formData.email.trim()) {
-      next.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      next.email = 'Please enter a valid email address'
-    }
-    if (!formData.message.trim()) {
-      next.message = 'Message is required'
-    } else if (formData.message.trim().length < 10) {
-      next.message = 'Message must be at least 10 characters'
-    }
-    setErrors(next)
-    return Object.keys(next).length === 0
-  }
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!validate()) return
-
-    setIsSubmitting(true)
-    setSubmitError('')
-    try {
-      await apiFetch('/api/contact', {
-        method: 'POST',
-        body: JSON.stringify(formData),
-      })
-      setIsSubmitted(true)
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: SUBJECT_OPTIONS[0],
-        message: '',
-      })
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to send message')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   return (
     <div className={`${styles.page} flex flex-col min-h-screen`}>
@@ -202,270 +116,154 @@ export default function ContactPage() {
           <h1 className={styles.heroTitle}>Get in Touch</h1>
           <p className={styles.heroSubtitle}>
             Have questions about our drones, need technical support, or want to
-            discuss enterprise solutions? Our team is here to help.
+            discuss enterprise solutions? Use the HDS Assistant chat to generate a
+            support ticket, or reach us directly below.
           </p>
         </div>
       </section>
 
       <section className={styles.content}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className={styles.grid}>
-            <div className={styles.formCard}>
-              <h2 className={styles.formTitle}>Send Us a Message</h2>
-              <p className={styles.formDesc}>
-                Fill out the form below and we&apos;ll get back to you within
-                one business day.
+          <div className={styles.ticketCallout}>
+            <div className={styles.ticketCalloutIcon}>
+              <Ticket className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className={styles.ticketCalloutTitle}>Ticket Generation</h2>
+              <p className={styles.ticketCalloutText}>
+                Click the chat button at the bottom-right of any store page, open{' '}
+                <strong>Ticket Generation</strong>, and submit your request. Our team
+                will respond within one business day.
               </p>
+            </div>
+          </div>
 
-              <form onSubmit={handleSubmit} noValidate>
-                <div className={styles.formRow}>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="name" className={styles.label}>
-                      Full Name *
-                    </label>
-                    <input
-                      id="name"
-                      type="text"
-                      className={`${styles.input} ${errors.name ? styles.inputError : ''}`}
-                      placeholder="John Doe"
-                      value={formData.name}
-                      onChange={(e) => {
-                        setFormData({ ...formData, name: e.target.value })
-                        if (errors.name) setErrors({ ...errors, name: undefined })
-                      }}
-                    />
-                    {errors.name && (
-                      <p className={styles.errorMessage}>{errors.name}</p>
-                    )}
-                  </div>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="email" className={styles.label}>
-                      Email Address *
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-                      placeholder="john@example.com"
-                      value={formData.email}
-                      onChange={(e) => {
-                        setFormData({ ...formData, email: e.target.value })
-                        if (errors.email) setErrors({ ...errors, email: undefined })
-                      }}
-                    />
-                    {errors.email && (
-                      <p className={styles.errorMessage}>{errors.email}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className={styles.formRow}>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="phone" className={styles.label}>
-                      Phone Number
-                    </label>
-                    <input
-                      id="phone"
-                      type="tel"
-                      className={styles.input}
-                      placeholder="+91 99401 99407"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className={styles.fieldGroup}>
-                    <label htmlFor="subject" className={styles.label}>
-                      Subject *
-                    </label>
-                    <select
-                      id="subject"
-                      className={styles.select}
-                      value={formData.subject}
-                      onChange={(e) =>
-                        setFormData({ ...formData, subject: e.target.value })
-                      }
-                    >
-                      {SUBJECT_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="message" className={styles.label}>
-                    Message *
-                  </label>
-                  <textarea
-                    id="message"
-                    className={`${styles.textarea} ${errors.message ? styles.inputError : ''}`}
-                    placeholder="Tell us how we can help you..."
-                    value={formData.message}
-                    onChange={(e) => {
-                      setFormData({ ...formData, message: e.target.value })
-                      if (errors.message) setErrors({ ...errors, message: undefined })
-                    }}
-                  />
-                  {errors.message && (
-                    <p className={styles.errorMessage}>{errors.message}</p>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  className={styles.submitBtn}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    'Sending...'
-                  ) : (
-                    <>
-                      <Send className="w-5 h-5" />
-                      Send Message
-                    </>
-                  )}
-                </button>
-
-                <p className={styles.privacyNote}>
-                  By submitting this form, you agree that we may use your
-                  information to respond to your inquiry. We never share your
-                  data with third parties.
+          <div className={styles.infoOnlyGrid}>
+            <div className={styles.infoCard}>
+              <div className={styles.infoIcon}>
+                <Phone className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className={styles.infoTitle}>Phone</h3>
+                <p className={styles.infoText}>
+                  <a href="tel:+919940199407" className={styles.infoLink}>
+                    +91-99401-99407
+                  </a>
                 </p>
-
-                {submitError && (
-                  <p className={styles.errorMessage} role="alert">
-                    {submitError}
-                  </p>
-                )}
-
-                {isSubmitted && (
-                  <p className={styles.successMessage} role="status">
-                    Thank you for reaching out! Our team will respond to your
-                    inquiry within one business day.
-                  </p>
-                )}
-              </form>
+                <p className={styles.infoText} style={{ marginTop: '0.25rem' }}>
+                  Mon–Fri, 8 AM – 6 PM IST
+                </p>
+              </div>
             </div>
 
-            <div className={styles.infoSection}>
-              <div className={styles.infoCard}>
-                <div className={styles.infoIcon}>
-                  <Phone className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className={styles.infoTitle}>Phone</h3>
-                  <p className={styles.infoText}>
-                    <a href="tel:+919940199407" className={styles.infoLink}>
-                      +91-99401-99407
-                    </a>
-                  </p>
-                  <p className={styles.infoText} style={{ marginTop: '0.25rem' }}>
-                    Mon–Fri, 8 AM – 6 PM IST
-                  </p>
-                </div>
+            <div className={styles.infoCard}>
+              <div className={styles.infoIcon}>
+                <Mail className="w-5 h-5" />
               </div>
-
-              <div className={styles.infoCard}>
-                <div className={styles.infoIcon}>
-                  <Mail className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className={styles.infoTitle}>Email</h3>
-                  <p className={styles.infoText}>
-                    <a href="mailto:info@hds-india.com" className={styles.infoLink}>
-                      info@hds-india.com
-                    </a>
-                  </p>
-                </div>
-              </div>
-
-              <div className={styles.infoCard}>
-                <div className={styles.infoIcon}>
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className={styles.infoTitle}>Head Office</h3>
-                  <p className={styles.infoText}>
-                    HDS Private Limited
-                    <br />
-                    No. 45 JN Road, Kamarajapuram
-                    <br />
-                    Thiruvallur
-                    <br />
-                    Tamil Nadu – 602001
-                    <br />
-                    India
-                  </p>
-                </div>
-              </div>
-
-              <div className={styles.infoCard}>
-                <div className={styles.infoIcon}>
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className={styles.infoTitle}>Sales & Enterprise</h3>
-                  <p className={styles.infoText}>
-                    For bulk orders, government contracts, and custom drone
-                    solutions, contact{' '}
-                    <a href="mailto:info@hds-india.com" className={styles.infoLink}>
-                      info@hds-india.com
-                    </a>
-                  </p>
-                </div>
-              </div>
-
-              <div className={styles.hoursCard}>
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  <h3 className={styles.hoursTitle}>Business Hours</h3>
-                </div>
-                {BUSINESS_HOURS.map((row) => (
-                  <div key={row.day} className={styles.hoursRow}>
-                    <span>{row.day}</span>
-                    <span>{row.hours}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className={styles.socialCard}>
-                <p className={styles.socialTitle}>Follow Us</p>
-                <div className={styles.socialLinks}>
-                  <a
-                    href="https://www.instagram.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.socialLink}
-                    aria-label="Instagram"
-                  >
-                    <InstagramIcon />
+              <div>
+                <h3 className={styles.infoTitle}>Email</h3>
+                <p className={styles.infoText}>
+                  <a href="mailto:info@hds-india.com" className={styles.infoLink}>
+                    info@hds-india.com
                   </a>
-                  <a
-                    href="https://www.youtube.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.socialLink}
-                    aria-label="YouTube"
-                  >
-                    <YouTubeIcon />
-                  </a>
-                  <a href="#" className={styles.socialLink} aria-label="X (Twitter)">
-                    <TwitterIcon />
-                  </a>
-                  <a href="#" className={styles.socialLink} aria-label="LinkedIn">
-                    <LinkedInIcon />
-                  </a>
-                </div>
+                </p>
               </div>
+            </div>
 
-              <div className={styles.mapPlaceholder}>
-                <MapPin className="w-5 h-5 mr-2" />
-                No. 45 JN Road, Kamarajapuram, Thiruvallur, TN 602001
+            <div className={styles.infoCard}>
+              <div className={styles.infoIcon}>
+                <MapPin className="w-5 h-5" />
               </div>
+              <div>
+                <h3 className={styles.infoTitle}>Head Office</h3>
+                <p className={styles.infoText}>
+                  HDS Private Limited
+                  <br />
+                  No. 45 JN Road, Kamarajapuram
+                  <br />
+                  Thiruvallur
+                  <br />
+                  Tamil Nadu – 602001
+                  <br />
+                  India
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.infoCard}>
+              <div className={styles.infoIcon}>
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className={styles.infoTitle}>Sales & Enterprise</h3>
+                <p className={styles.infoText}>
+                  For bulk orders, government contracts, and custom drone
+                  solutions, contact{' '}
+                  <a href="mailto:info@hds-india.com" className={styles.infoLink}>
+                    info@hds-india.com
+                  </a>
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.hoursCard}>
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-5 h-5 text-primary" />
+                <h3 className={styles.hoursTitle}>Business Hours</h3>
+              </div>
+              {BUSINESS_HOURS.map((row) => (
+                <div key={row.day} className={styles.hoursRow}>
+                  <span>{row.day}</span>
+                  <span>{row.hours}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.socialCard}>
+              <p className={styles.socialTitle}>Follow Us</p>
+              <div className={styles.socialLinks}>
+                <a
+                  href="https://www.instagram.com/hawking_hds/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.socialLink}
+                  aria-label="Instagram"
+                >
+                  <InstagramIcon />
+                </a>
+                <a
+                  href="https://www.youtube.com/@HawkingDefenceServices"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.socialLink}
+                  aria-label="YouTube"
+                >
+                  <YouTubeIcon />
+                </a>
+                <a
+                  href="https://x.com/HawkingDefense"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.socialLink}
+                  aria-label="X (Twitter)"
+                >
+                  <TwitterIcon />
+                </a>
+                <a
+                  href="https://linkedin.com/company/hawking-defence-services-private-limited"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.socialLink}
+                  aria-label="LinkedIn"
+                >
+                  <LinkedInIcon />
+                </a>
+              </div>
+            </div>
+
+            <div className={styles.mapPlaceholder}>
+              <MapPin className="w-5 h-5 mr-2" />
+              No. 45 JN Road, Kamarajapuram, Thiruvallur, TN 602001
             </div>
           </div>
         </div>

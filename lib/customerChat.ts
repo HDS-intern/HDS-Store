@@ -132,3 +132,30 @@ export function countUnreadSupportThreads(): number {
     .get() as { c: number }
   return row.c ?? 0
 }
+
+export function countUnreadCustomerChatMessages(): number {
+  const db = getDb()
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) as c FROM chat_messages
+       WHERE channel = 'support' AND sender = 'customer' AND read_at IS NULL`
+    )
+    .get() as { c: number }
+  return row.c ?? 0
+}
+
+export function deleteSupportChatMessage(messageId: string): boolean {
+  const db = getDb()
+  const result = db
+    .prepare(`DELETE FROM chat_messages WHERE id = ? AND channel = 'support'`)
+    .run(messageId)
+  return result.changes > 0
+}
+
+export function deleteSupportThread(userId: string): number {
+  const db = getDb()
+  const result = db
+    .prepare(`DELETE FROM chat_messages WHERE user_id = ? AND channel = 'support'`)
+    .run(userId)
+  return result.changes
+}

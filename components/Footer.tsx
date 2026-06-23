@@ -129,7 +129,7 @@ export function Footer() {
         <div className={`${styles.divider} pt-8 flex flex-col md:flex-row justify-between items-center gap-4`}>
           <div className={styles.socialLinks}>
             <a
-              href="https://www.instagram.com"
+              href="https://www.instagram.com/hawking_hds/"
               target="_blank"
               rel="noopener noreferrer"
               className={styles.socialLink}
@@ -138,7 +138,7 @@ export function Footer() {
               <InstagramIcon />
             </a>
             <a
-              href="https://www.youtube.com"
+              href="https://www.youtube.com/@HawkingDefenceServices"
               target="_blank"
               rel="noopener noreferrer"
               className={styles.socialLink}
@@ -146,10 +146,22 @@ export function Footer() {
             >
               <YouTubeIcon />
             </a>
-            <a href="#" className={styles.socialLink} aria-label="X (Twitter)">
+            <a
+              href="https://x.com/HawkingDefense"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.socialLink}
+              aria-label="X (Twitter)"
+            >
               <TwitterIcon />
             </a>
-            <a href="#" className={styles.socialLink} aria-label="LinkedIn">
+            <a
+              href="https://linkedin.com/company/hawking-defence-services-private-limited"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.socialLink}
+              aria-label="LinkedIn"
+            >
               <LinkedInIcon />
             </a>
           </div>

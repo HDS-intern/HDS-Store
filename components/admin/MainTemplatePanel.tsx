@@ -394,7 +394,7 @@ export function MainTemplatePanel({ onMessage, onError }: MainTemplatePanelProps
               <div className={styles.fieldRow}>
                 <label className={styles.label}>Popup Type</label>
                 <select
-                  className={styles.select}
+                  className="hds-select-dark"
                   value={template.popup.type}
                   onChange={(e) =>
                     setTemplate({

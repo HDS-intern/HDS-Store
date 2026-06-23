@@ -15,3 +15,6 @@ data/
 .next/
 .DS_Store
 tsconfig.tsbuildinfo
+
+# Google App Engine generated folder
+appengine-generated/

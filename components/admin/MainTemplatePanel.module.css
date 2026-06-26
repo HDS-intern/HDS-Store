@@ -1,6 +1,6 @@
 .panel {
   margin-top: 1.25rem;
-  background: #1e293b;
+  background: var(--card);
   border: 1px solid rgba(59, 130, 246, 0.25);
   border-radius: 0.875rem;
   padding: 1.25rem;
@@ -11,20 +11,20 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin-bottom: 0.5rem;
 }
 
 .hint {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   line-height: 1.5;
   margin-bottom: 1.25rem;
 }
 
 .loading {
   margin-top: 1.25rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-size: 0.875rem;
 }
 
@@ -50,7 +50,7 @@
 .sectionTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--foreground);
   margin: 0;
 }
 
@@ -61,8 +61,8 @@
   padding: 0.4rem 0.75rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #0f172a;
-  color: #93c5fd;
+  background: var(--background);
+  color: var(--primary);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -87,7 +87,7 @@
 }
 
 .slideCard {
-  background: #0f172a;
+  background: var(--background);
   border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 0.75rem;
   padding: 1rem;
@@ -105,7 +105,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #93c5fd;
+  color: var(--primary);
 }
 
 .removeBtn {
@@ -129,7 +129,7 @@
   overflow: hidden;
   margin-bottom: 0.75rem;
   border: 1px solid rgba(148, 163, 184, 0.15);
-  background: #1e293b;
+  background: var(--card);
 }
 
 .fieldRow {
@@ -140,7 +140,7 @@
   display: block;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin-bottom: 0.25rem;
 }
 
@@ -151,8 +151,8 @@
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #1e293b;
-  color: #f8fafc;
+  background: var(--card);
+  color: var(--foreground);
   font-size: 0.8125rem;
 }
 
@@ -178,8 +178,8 @@
   flex-shrink: 0;
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #1e293b;
-  color: #93c5fd;
+  background: var(--card);
+  color: var(--primary);
   cursor: pointer;
 }
 
@@ -224,7 +224,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8125rem;
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   cursor: pointer;
 }
 

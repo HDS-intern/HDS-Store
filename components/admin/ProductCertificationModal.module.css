@@ -17,7 +17,7 @@
   padding: 1.5rem;
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #1e293b;
+  background: var(--card);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
   animation: scaleIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -26,14 +26,14 @@
   margin: 0 0 0.25rem;
   font-size: 1.125rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
   text-align: center;
 }
 
 .subtitle {
   margin: 0 0 1.25rem;
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   text-align: center;
 }
 
@@ -56,7 +56,7 @@
   border-radius: 1rem;
   border: 2px dashed rgba(59, 130, 246, 0.45);
   background: rgba(15, 23, 42, 0.65);
-  color: #93c5fd;
+  color: var(--primary);
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
 }
@@ -93,7 +93,7 @@
   object-fit: contain;
   border-radius: 0.75rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #0f172a;
+  background: var(--background);
 }
 
 .replaceBtn {
@@ -103,8 +103,8 @@
   padding: 0.4rem 0.75rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #0f172a;
-  color: #93c5fd;
+  background: var(--background);
+  color: var(--primary);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -147,7 +147,7 @@
 
 .closeBtn {
   background: rgba(148, 163, 184, 0.15);
-  color: #cbd5e1;
+  color: var(--muted-foreground);
 }
 
 .closeBtn:hover {

@@ -17,7 +17,7 @@
   max-width: 26rem;
   border-radius: 1rem;
   overflow: hidden;
-  background: #fff;
+  background: var(--card);
   box-shadow: 0 24px 48px rgba(53, 106, 176, 0.2);
   animation: slideUp 0.25s ease;
 }
@@ -67,13 +67,13 @@
 .title {
   font-size: 1.25rem;
   font-weight: 800;
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   margin: 0 0 0.5rem;
 }
 
 .subtitle {
   font-size: 0.9375rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   line-height: 1.5;
   margin: 0 0 1.25rem;
 }

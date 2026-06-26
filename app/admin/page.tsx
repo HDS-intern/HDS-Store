@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react'
+import { useState, useEffect, useCallback, useRef, useLayoutEffect, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { AdminShell, type AdminTab } from '@/components/admin/AdminShell'
+import { AdminSlideUp } from '@/components/admin/AdminSlideUp'
 import { AdminDashboard } from '@/components/admin/AdminDashboard'
+import { startAdminEntranceOnce, completeAdminEntrance } from '@/lib/adminEntrance'
 import { BulkOrderTemplatePanel } from '@/components/admin/BulkOrderTemplatePanel'
-import { InvoiceTemplatePanel } from '@/components/admin/InvoiceTemplatePanel'
 import { TermsAgreementTemplatePanel } from '@/components/admin/TermsAgreementTemplatePanel'
 import { MainTemplatePanel } from '@/components/admin/MainTemplatePanel'
 import { StaffRecordsPanel } from '@/components/admin/StaffRecordsPanel'
@@ -22,13 +23,20 @@ import {
 import { AdminOrderNotificationPopup } from '@/components/admin/AdminOrderNotificationPopup'
 import { AdminOrderNotificationToast } from '@/components/admin/AdminOrderNotificationToast'
 import { AdminUpdateToast, type AdminUpdateToastItem } from '@/components/admin/AdminUpdateToast'
+import { AdminErrorToast } from '@/components/admin/AdminErrorToast'
 import { AdminTableColumnHeader } from '@/components/admin/AdminTableColumnHeader'
+import { AdminBadgeDropdown } from '@/components/admin/AdminBadgeDropdown'
 import { AdminPasswordCell } from '@/components/admin/AdminPasswordCell'
 import { UserAccessToggle } from '@/components/admin/UserAccessToggle'
 import { CustomerDetailsModal } from '@/components/admin/CustomerDetailsModal'
 import { OrderDetailsModal } from '@/components/admin/OrderDetailsModal'
 import { ProductImageModal } from '@/components/admin/ProductImageModal'
 import { ProductCertificationModal } from '@/components/admin/ProductCertificationModal'
+import {
+  ProductBulkEntryModal,
+  createEmptyProductDraftRow,
+  type ProductDraftRow,
+} from '@/components/admin/ProductBulkEntryModal'
 import { useApp } from '@/lib/context'
 import { apiFetch, getStoredToken } from '@/lib/api'
 import { formatPrice } from '@/lib/formatPrice'
@@ -92,6 +100,7 @@ import {
   ShoppingBag,
   CreditCard,
   Users,
+  UserPlus,
   Plus,
   ChevronDown,
   Check,
@@ -102,25 +111,8 @@ import {
   FileText,
   Ticket,
   MessageCircle,
-  Hash,
-  TrendingUp,
-  Tag,
-  Percent,
-  Layers,
-  CheckCircle2,
-  Settings,
-  User,
-  UserCircle,
-  Mail,
-  Shield,
-  Key,
-  Lock,
-  Calendar,
-  Trash2,
-  Activity,
-  IndianRupee,
-  RefreshCw,
   ImageIcon,
+  X,
 } from 'lucide-react'
 import styles from './page.module.css'
 
@@ -135,20 +127,22 @@ const STAFF_ROLES = [
   { value: 'admin', label: 'Admin', description: 'Full system access' },
 ] as const
 
-const ORDER_STATUSES = [
+const PAYMENT_STATUSES = [
   { value: 'pending', label: 'Pending' },
-  { value: 'confirmed', label: 'Confirmed' },
-  { value: 'shipped', label: 'Shipped' },
-  { value: 'delivered', label: 'Delivered' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'refunded', label: 'Refunded' },
 ] as const
 
-const STATUS_BADGE: Record<string, string> = {
+const PAYMENT_BADGE: Record<string, string> = {
   pending: 'badgePending',
-  confirmed: 'badgeConfirmed',
-  shipped: 'badgeShipped',
-  delivered: 'badgeDelivered',
-  cancelled: 'badgeCancelled',
+  paid: 'badgePaid',
+  failed: 'badgeFailed',
+  refunded: 'badgeRefunded',
+}
+
+function paymentBadgeClass(status: string) {
+  return PAYMENT_BADGE[status] ?? 'badgePending'
 }
 
 function customerColumnLabel(order: DbOrder) {
@@ -156,112 +150,83 @@ function customerColumnLabel(order: DbOrder) {
   return raw.replace(/\s+customer$/i, '').trim() || raw
 }
 
-function OrderStatusDropdown({
-  value,
-  disabled,
-  onChange,
-}: {
-  value: string
-  disabled?: boolean
-  onChange: (status: string) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, minWidth: 0 })
-  const triggerRef = useRef<HTMLButtonElement>(null)
-  const selected =
-    ORDER_STATUSES.find((status) => status.value === value) ?? ORDER_STATUSES[0]
-  const badgeClass = styles[STATUS_BADGE[value] as keyof typeof styles] ?? styles.badgePending
+function useSelectMenuPosition(open: boolean, triggerRef: RefObject<HTMLButtonElement | null>) {
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 })
 
-  const updateMenuPosition = useCallback(() => {
+  const updatePosition = useCallback(() => {
     const trigger = triggerRef.current
     if (!trigger) return
     const rect = trigger.getBoundingClientRect()
-    setMenuPosition({
+    setPosition({
       top: rect.bottom + 6,
       left: rect.left,
-      minWidth: rect.width,
+      width: rect.width,
     })
-  }, [])
+  }, [triggerRef])
 
   useLayoutEffect(() => {
-    if (!open) return
-    updateMenuPosition()
-  }, [open, updateMenuPosition])
+    if (open) updatePosition()
+  }, [open, updatePosition])
 
   useEffect(() => {
     if (!open) return
-    const handleReposition = () => updateMenuPosition()
+    const handleReposition = () => updatePosition()
     window.addEventListener('resize', handleReposition)
     window.addEventListener('scroll', handleReposition, true)
     return () => {
       window.removeEventListener('resize', handleReposition)
       window.removeEventListener('scroll', handleReposition, true)
     }
-  }, [open, updateMenuPosition])
+  }, [open, updatePosition])
 
-  if (disabled) {
-    return <span className={`${styles.badge} ${badgeClass}`}>{selected.label}</span>
-  }
+  return position
+}
 
-  const menu =
-    open && typeof document !== 'undefined'
-      ? createPortal(
-          <>
-            <button
-              type="button"
-              className={styles.statusBackdrop}
-              onClick={() => setOpen(false)}
-              aria-label="Close status menu"
-            />
-            <ul
-              className={styles.statusMenuPortal}
-              role="listbox"
-              style={{
-                top: menuPosition.top,
-                left: menuPosition.left,
-                minWidth: menuPosition.minWidth,
-              }}
-            >
-              {ORDER_STATUSES.map((status) => {
-                const optionBadge =
-                  styles[STATUS_BADGE[status.value] as keyof typeof styles] ?? styles.badgePending
-                return (
-                  <li key={status.value} role="option" aria-selected={value === status.value}>
-                    <button
-                      type="button"
-                      className={`${styles.statusOption} ${value === status.value ? styles.statusOptionActive : ''}`}
-                      onClick={() => {
-                        onChange(status.value)
-                        setOpen(false)
-                      }}
-                    >
-                      <span className={`${styles.badge} ${optionBadge}`}>{status.label}</span>
-                      {value === status.value && <Check className={styles.selectCheck} />}
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </>,
-          document.body
-        )
-      : null
+function SelectMenuPortal({
+  open,
+  onClose,
+  position,
+  children,
+  scrollable = false,
+}: {
+  open: boolean
+  onClose: () => void
+  position: { top: number; left: number; width: number }
+  children: ReactNode
+  scrollable?: boolean
+}) {
+  useEffect(() => {
+    if (!open) return
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [open, onClose])
 
-  return (
-    <div className={styles.statusSelectWrap}>
+  if (!open || typeof document === 'undefined') return null
+
+  return createPortal(
+    <>
       <button
-        ref={triggerRef}
         type="button"
-        className={`${styles.statusTrigger} ${open ? styles.statusTriggerOpen : ''}`}
-        onClick={() => setOpen((prev) => !prev)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
+        className={styles.selectBackdrop}
+        onClick={onClose}
+        aria-label="Close menu"
+      />
+      <ul
+        className={`${styles.selectMenu} ${styles.selectMenuFixed} ${scrollable ? styles.selectMenuScroll : ''}`}
+        role="listbox"
+        style={{
+          top: position.top,
+          left: position.left,
+          width: position.width,
+        }}
       >
-        <span className={`${styles.badge} ${badgeClass}`}>{selected.label}</span>
-        <ChevronDown className={`${styles.selectChevron} ${open ? styles.selectChevronOpen : ''}`} />
-      </button>
-      {menu}
-    </div>
+        {children}
+      </ul>
+    </>,
+    document.body
   )
 }
 
@@ -273,11 +238,14 @@ function RoleDropdown({
   onChange: (role: string) => void
 }) {
   const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const position = useSelectMenuPosition(open, triggerRef)
   const selected = STAFF_ROLES.find((r) => r.value === value) ?? STAFF_ROLES[0]
 
   return (
     <div className={styles.selectWrap}>
       <button
+        ref={triggerRef}
         type="button"
         className={`${styles.selectTrigger} ${open ? styles.selectTriggerOpen : ''}`}
         onClick={() => setOpen((prev) => !prev)}
@@ -291,36 +259,26 @@ function RoleDropdown({
         <ChevronDown className={`${styles.selectChevron} ${open ? styles.selectChevronOpen : ''}`} />
       </button>
 
-      {open && (
-        <>
-          <button
-            type="button"
-            className={styles.selectBackdrop}
-            onClick={() => setOpen(false)}
-            aria-label="Close role menu"
-          />
-          <ul className={styles.selectMenu} role="listbox">
-            {STAFF_ROLES.map((role) => (
-              <li key={role.value} role="option" aria-selected={value === role.value}>
-                <button
-                  type="button"
-                  className={`${styles.selectOption} ${value === role.value ? styles.selectOptionActive : ''}`}
-                  onClick={() => {
-                    onChange(role.value)
-                    setOpen(false)
-                  }}
-                >
-                  <span>
-                    <span className={styles.selectOptionLabel}>{role.label}</span>
-                    <span className={styles.selectOptionHint}>{role.description}</span>
-                  </span>
-                  {value === role.value && <Check className={styles.selectCheck} />}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      <SelectMenuPortal open={open} onClose={() => setOpen(false)} position={position}>
+        {STAFF_ROLES.map((role) => (
+          <li key={role.value} role="option" aria-selected={value === role.value}>
+            <button
+              type="button"
+              className={`${styles.selectOption} ${value === role.value ? styles.selectOptionActive : ''}`}
+              onClick={() => {
+                onChange(role.value)
+                setOpen(false)
+              }}
+            >
+              <span>
+                <span className={styles.selectOptionLabel}>{role.label}</span>
+                <span className={styles.selectOptionHint}>{role.description}</span>
+              </span>
+              {value === role.value && <Check className={styles.selectCheck} />}
+            </button>
+          </li>
+        ))}
+      </SelectMenuPortal>
     </div>
   )
 }
@@ -335,11 +293,14 @@ function StaffMemberDropdown({
   onChange: (staffRecordId: string) => void
 }) {
   const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const position = useSelectMenuPosition(open, triggerRef)
   const selected = staff.find((member) => member.id === value)
 
   return (
     <div className={styles.selectWrap}>
       <button
+        ref={triggerRef}
         type="button"
         className={`${styles.selectTrigger} ${open ? styles.selectTriggerOpen : ''}`}
         onClick={() => setOpen((prev) => !prev)}
@@ -361,58 +322,53 @@ function StaffMemberDropdown({
         <ChevronDown className={`${styles.selectChevron} ${open ? styles.selectChevronOpen : ''}`} />
       </button>
 
-      {open && (
-        <>
+      <SelectMenuPortal
+        open={open}
+        onClose={() => setOpen(false)}
+        position={position}
+        scrollable
+      >
+        <li role="option" aria-selected={!value}>
           <button
             type="button"
-            className={styles.selectBackdrop}
-            onClick={() => setOpen(false)}
-            aria-label="Close staff menu"
-          />
-          <ul className={`${styles.selectMenu} ${styles.selectMenuScroll}`} role="listbox">
-            <li role="option" aria-selected={!value}>
-              <button
-                type="button"
-                className={`${styles.selectOption} ${!value ? styles.selectOptionActive : ''}`}
-                onClick={() => {
-                  onChange('')
-                  setOpen(false)
-                }}
-              >
-                <span>
-                  <span className={styles.selectOptionLabel}>Select staff without login</span>
-                  <span className={styles.selectOptionHint}>Clear current selection</span>
+            className={`${styles.selectOption} ${!value ? styles.selectOptionActive : ''}`}
+            onClick={() => {
+              onChange('')
+              setOpen(false)
+            }}
+          >
+            <span>
+              <span className={styles.selectOptionLabel}>Select staff without login</span>
+              <span className={styles.selectOptionHint}>Clear current selection</span>
+            </span>
+            {!value && <Check className={styles.selectCheck} />}
+          </button>
+        </li>
+        {staff.map((member) => (
+          <li key={member.id} role="option" aria-selected={value === member.id}>
+            <button
+              type="button"
+              className={`${styles.selectOption} ${value === member.id ? styles.selectOptionActive : ''}`}
+              onClick={() => {
+                onChange(member.id)
+                setOpen(false)
+              }}
+            >
+              <span>
+                <span className={styles.selectOptionLabel}>{member.employeeName}</span>
+                <span className={styles.selectOptionHint}>
+                  {member.contactNumber || 'No contact'}
+                  {member.joiningDate ? ` · Joined ${member.joiningDate}` : ''}
                 </span>
-                {!value && <Check className={styles.selectCheck} />}
-              </button>
-            </li>
-            {staff.map((member) => (
-              <li key={member.id} role="option" aria-selected={value === member.id}>
-                <button
-                  type="button"
-                  className={`${styles.selectOption} ${value === member.id ? styles.selectOptionActive : ''}`}
-                  onClick={() => {
-                    onChange(member.id)
-                    setOpen(false)
-                  }}
-                >
-                  <span>
-                    <span className={styles.selectOptionLabel}>{member.employeeName}</span>
-                    <span className={styles.selectOptionHint}>
-                      {member.contactNumber || 'No contact'}
-                      {member.joiningDate ? ` · Joined ${member.joiningDate}` : ''}
-                    </span>
-                  </span>
-                  {value === member.id && <Check className={styles.selectCheck} />}
-                </button>
-              </li>
-            ))}
-            {staff.length === 0 && (
-              <li className={styles.selectEmptyState}>No staff available without a login account</li>
-            )}
-          </ul>
-        </>
-      )}
+              </span>
+              {value === member.id && <Check className={styles.selectCheck} />}
+            </button>
+          </li>
+        ))}
+        {staff.length === 0 && (
+          <li className={styles.selectEmptyState}>No staff available without a login account</li>
+        )}
+      </SelectMenuPortal>
     </div>
   )
 }
@@ -421,6 +377,7 @@ export default function AdminPage() {
   const router = useRouter()
   const { user, authLoading, logout, products, refreshProducts } = useApp()
   const [tab, setTab] = useState<AdminTab>('dashboard')
+  const [entranceSession, setEntranceSession] = useState(0)
   const [orders, setOrders] = useState<DbOrder[]>([])
   const [staffUsers, setStaffUsers] = useState<Record<string, unknown>[]>([])
   const [dashboardRefresh, setDashboardRefresh] = useState(0)
@@ -437,6 +394,8 @@ export default function AdminPage() {
 
   const [editProduct, setEditProduct] = useState<Partial<Product> | null>(null)
   const [newProduct, setNewProduct] = useState(false)
+  const [productDraftRows, setProductDraftRows] = useState<ProductDraftRow[] | null>(null)
+  const [bulkSaving, setBulkSaving] = useState(false)
   const [showCertModal, setShowCertModal] = useState(false)
   const [certDraftImage, setCertDraftImage] = useState<string | null>(null)
   const [imageUploading, setImageUploading] = useState(false)
@@ -480,6 +439,7 @@ export default function AdminPage() {
   })
   const [availableStaff, setAvailableStaff] = useState<StaffRecord[]>([])
   const [showNewUserPassword, setShowNewUserPassword] = useState(false)
+  const [showCreateUserForm, setShowCreateUserForm] = useState(false)
   const [accessUpdatingId, setAccessUpdatingId] = useState<string | null>(null)
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
   const [editingAccess, setEditingAccess] = useState<{
@@ -688,7 +648,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (authLoading) return
     if (!user || (user.role !== 'admin' && user.role !== 'staff')) {
-      router.replace('/login')
+      router.replace('/login?admin=1')
       return
     }
     loadOrders()
@@ -852,7 +812,7 @@ export default function AdminPage() {
   const saveProduct = async () => {
     if (!editProduct) return
     if (!editProduct.modelId?.trim()) {
-      setError('Model ID is required')
+      setError('SKU ID is required')
       return
     }
     if (!editProduct.manufacturingId?.trim()) {
@@ -900,26 +860,10 @@ export default function AdminPage() {
 
   const openNewProduct = () => {
     setNewProduct(true)
+    setEditProduct(null)
+    setProductDraftRows([createEmptyProductDraftRow()])
     setShowCertModal(false)
     setCertDraftImage(null)
-    setStockInput('0')
-    setMaxPriceInput('0')
-    setDiscountedPriceInput('0')
-    setDiscountInput('0')
-    setEditProduct({
-      name: '',
-      modelId: '',
-      manufacturingId: '',
-      price: 0,
-      stock: 0,
-      image: '/images/drone-sentinel-pro.png',
-      category: 'Professional Drones',
-      subcategory: 'General',
-      description: '',
-      rating: 4.5,
-      reviews: 0,
-      warranty: defaultProductWarranty(),
-    })
   }
 
   const openEditProduct = (product: Product) => {
@@ -936,6 +880,8 @@ export default function AdminPage() {
   const closeProductEditor = () => {
     setEditProduct(null)
     setNewProduct(false)
+    setProductDraftRows(null)
+    setBulkSaving(false)
     setShowCertModal(false)
     setCertDraftImage(null)
     setStockInput('')
@@ -1006,6 +952,82 @@ export default function AdminPage() {
     setCertDraftImage(null)
   }
 
+  const handleBulkRowImageUpload = async (rowId: string, file: File) => {
+    setImageUploading(true)
+    try {
+      const url = await uploadProductFile(file)
+      setProductDraftRows((prev) =>
+        prev?.map((row) => (row.id === rowId ? { ...row, image: url } : row)) ?? null
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Image upload failed')
+    } finally {
+      setImageUploading(false)
+    }
+  }
+
+  const saveBulkProducts = async () => {
+    if (!productDraftRows?.length) return
+
+    for (const row of productDraftRows) {
+      if (!row.modelId.trim()) {
+        setError(`Row ${productDraftRows.indexOf(row) + 1}: SKU ID is required`)
+        return
+      }
+      if (!row.manufacturingId.trim()) {
+        setError(`Row ${productDraftRows.indexOf(row) + 1}: Manufacturing ID is required`)
+        return
+      }
+    }
+
+    setBulkSaving(true)
+    setError('')
+    try {
+      for (const row of productDraftRows) {
+        const stock = row.stock === '' ? 0 : Math.max(0, parseInt(row.stock, 10) || 0)
+        const price =
+          row.discountedPrice === '' ? 0 : Math.max(0, parseInt(row.discountedPrice, 10) || 0)
+        const maxPrice = row.maxPrice === '' ? price : Math.max(0, parseInt(row.maxPrice, 10) || 0)
+        const originalPrice = maxPrice > price ? maxPrice : undefined
+
+        await apiFetch('/api/admin/products', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: row.name,
+            modelId: row.modelId.trim(),
+            manufacturingId: row.manufacturingId.trim(),
+            price,
+            originalPrice,
+            stock,
+            inStock: stock > 0,
+            image: row.image || '/images/drone-sentinel-pro.png',
+            images: [row.image || '/images/drone-sentinel-pro.png'],
+            category: row.category || 'Professional Drones',
+            subcategory: 'General',
+            description: row.description,
+            rating: 4.5,
+            reviews: 0,
+            warranty: {
+              ...defaultProductWarranty(),
+              duration: row.warrantyDuration,
+            },
+          }),
+        })
+      }
+
+      showMsg(
+        `${productDraftRows.length} product${productDraftRows.length === 1 ? '' : 's'} added successfully`,
+        'product'
+      )
+      closeProductEditor()
+      await refreshProducts()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save products')
+    } finally {
+      setBulkSaving(false)
+    }
+  }
+
   const deleteProduct = async (id: string) => {
     if (!confirm('Delete this product?')) return
     try {
@@ -1064,6 +1086,7 @@ export default function AdminPage() {
         permissions: permissionsForRole('staff'),
       })
       setShowNewUserPassword(false)
+      setShowCreateUserForm(false)
       await loadUsers()
       await loadAvailableStaff()
     } catch (err) {
@@ -1126,15 +1149,34 @@ export default function AdminPage() {
     }
   }
 
+  const handleDashboardReady = useCallback((ready: boolean) => {
+    if (!ready) return
+    const session = startAdminEntranceOnce()
+    if (session > 0) setEntranceSession(session)
+  }, [])
+
+  useEffect(() => {
+    if (entranceSession <= 0) return
+    const timer = window.setTimeout(() => completeAdminEntrance(entranceSession), 1200)
+    return () => window.clearTimeout(timer)
+  }, [entranceSession])
+
   const handleLogout = async () => {
     await logout()
-    router.push('/login')
+    router.push('/login?admin=1')
+  }
+
+  const closeCreateUserModal = () => {
+    setShowCreateUserForm(false)
+    setShowNewUserPassword(false)
   }
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <AdminSlideUp delayMs={0}>
+          <p className="text-muted-foreground">Loading...</p>
+        </AdminSlideUp>
       </div>
     )
   }
@@ -1154,42 +1196,48 @@ export default function AdminPage() {
         hasPermission(user, 'payments_manage'))
   )
 
-  const navItems: {
+  type AdminNavItem = {
     id: AdminTab
     label: string
     icon: typeof Package
     badgeCount?: number
-  }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'inventory', label: 'Inventory', icon: Package },
-    { id: 'orders', label: 'Orders', icon: ShoppingBag },
-    { id: 'invoices', label: 'Invoices', icon: FileText },
-    { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'users', label: 'System Users', icon: Users },
-    { id: 'staff-data', label: 'Staff Records', icon: ClipboardList },
-    { id: 'messages', label: 'Ticket Generation', icon: Ticket },
-    { id: 'customer-chat', label: 'Customer Chat', icon: MessageCircle },
-    { id: 'template', label: 'Edit Template', icon: FileSpreadsheet },
-  ].filter((item) => {
-    if (item.id === 'dashboard') return hasPermission(user, 'dashboard')
-    if (item.id === 'inventory')
-      return hasPermission(user, 'inventory_view') || hasPermission(user, 'inventory_manage')
-    if (item.id === 'orders')
-      return hasPermission(user, 'orders_view') || hasPermission(user, 'orders_manage')
-    if (item.id === 'invoices') return canViewInvoices
-    if (item.id === 'payments')
-      return hasPermission(user, 'payments_view') || hasPermission(user, 'payments_manage')
-    if (item.id === 'users') return canManageUsers
-    if (item.id === 'staff-data') return canViewStaffRecords
-    if (item.id === 'messages') return isFullAdmin
-    if (item.id === 'customer-chat') return user.role === 'admin' || user.role === 'staff'
-    if (item.id === 'template') return isFullAdmin
-    return true
-  }).map((item) => {
-    if (item.id === 'messages') return { ...item, badgeCount: unreadContactCount }
-    if (item.id === 'customer-chat') return { ...item, badgeCount: unreadCustomerChatCount }
-    return item
-  })
+  }
+
+  const navItems: AdminNavItem[] = (
+    [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'inventory', label: 'Inventory', icon: Package },
+      { id: 'orders', label: 'Orders', icon: ShoppingBag },
+      { id: 'invoices', label: 'Invoices', icon: FileText },
+      { id: 'payments', label: 'Payments', icon: CreditCard },
+      { id: 'users', label: 'System Users', icon: Users },
+      { id: 'staff-data', label: 'Staff Records', icon: ClipboardList },
+      { id: 'messages', label: 'Ticket Generation', icon: Ticket },
+      { id: 'customer-chat', label: 'Customer Chat', icon: MessageCircle },
+      { id: 'template', label: 'Edit Template', icon: FileSpreadsheet },
+    ] satisfies AdminNavItem[]
+  )
+    .filter((item) => {
+      if (item.id === 'dashboard') return hasPermission(user, 'dashboard')
+      if (item.id === 'inventory')
+        return hasPermission(user, 'inventory_view') || hasPermission(user, 'inventory_manage')
+      if (item.id === 'orders')
+        return hasPermission(user, 'orders_view') || hasPermission(user, 'orders_manage')
+      if (item.id === 'invoices') return canViewInvoices
+      if (item.id === 'payments')
+        return hasPermission(user, 'payments_view') || hasPermission(user, 'payments_manage')
+      if (item.id === 'users') return canManageUsers
+      if (item.id === 'staff-data') return canViewStaffRecords
+      if (item.id === 'messages') return isFullAdmin
+      if (item.id === 'customer-chat') return user.role === 'admin' || user.role === 'staff'
+      if (item.id === 'template') return isFullAdmin
+      return true
+    })
+    .map((item) => {
+      if (item.id === 'messages') return { ...item, badgeCount: unreadContactCount }
+      if (item.id === 'customer-chat') return { ...item, badgeCount: unreadCustomerChatCount }
+      return item
+    })
 
   const dismissNotification = () => setActiveNotification(null)
 
@@ -1217,11 +1265,14 @@ export default function AdminPage() {
       onTabChange={setTab}
       onLogout={handleLogout}
       navItems={navItems}
+      entranceSession={tab === 'dashboard' ? entranceSession : 0}
     >
-      {error && <div className={styles.messageError}>{error}</div>}
-
       {tab === 'dashboard' && (
-        <AdminDashboard refreshKey={dashboardRefresh} />
+        <AdminDashboard
+          refreshKey={dashboardRefresh}
+          entranceSession={entranceSession}
+          onReadyChange={handleDashboardReady}
+        />
       )}
 
           {tab === 'inventory' && (
@@ -1242,207 +1293,18 @@ export default function AdminPage() {
                 )}
               </div>
 
-              {editProduct && (
-                <div className={styles.editPanel}>
-                  <h3 className="font-bold mb-3 text-slate-100">{newProduct ? 'New Product' : 'Edit Product'}</h3>
-                  <div className={styles.formGrid}>
-                    <div>
-                      <label className={styles.formLabel}>Name</label>
-                      <input
-                        className={styles.formInput}
-                        value={editProduct.name || ''}
-                        onChange={(e) => setEditProduct({ ...editProduct, name: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className={styles.formLabel}>Model ID *</label>
-                      <input
-                        required
-                        className={styles.formInput}
-                        value={editProduct.modelId || ''}
-                        onChange={(e) => setEditProduct({ ...editProduct, modelId: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className={styles.formLabel}>Manufacturing ID *</label>
-                      <input
-                        required
-                        className={styles.formInput}
-                        value={editProduct.manufacturingId || ''}
-                        onChange={(e) =>
-                          setEditProduct({ ...editProduct, manufacturingId: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className={styles.formLabel}>Max Price (₹)</label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className={styles.formInput}
-                        value={maxPriceInput}
-                        onChange={(e) => handlePricingChange('max', 'max', e.target.value)}
-                        onBlur={() => normalizePricingField('max')}
-                      />
-                    </div>
-                    <div>
-                      <label className={styles.formLabel}>Discount %</label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className={styles.formInput}
-                        value={discountInput}
-                        placeholder="0"
-                        onChange={(e) => handlePricingChange('discount', 'discount', e.target.value)}
-                        onBlur={() => normalizePricingField('discount')}
-                      />
-                    </div>
-                    <div>
-                      <label className={styles.formLabel}>Discounted Price (₹)</label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className={styles.formInput}
-                        value={discountedPriceInput}
-                        onChange={(e) => handlePricingChange('sale', 'sale', e.target.value)}
-                        onBlur={() => normalizePricingField('sale')}
-                      />
-                    </div>
-                    <div>
-                      <label className={styles.formLabel}>Stock Qty</label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className={styles.formInput}
-                        value={stockInput}
-                        onChange={(e) => {
-                          const raw = e.target.value
-                          if (raw === '' || /^\d+$/.test(raw)) {
-                            setStockInput(raw)
-                          }
-                        }}
-                        onBlur={() => {
-                          const parsed = stockInput === '' ? 0 : Math.max(0, parseInt(stockInput, 10) || 0)
-                          setStockInput(String(parsed))
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label className={styles.formLabel}>Category</label>
-                      <input
-                        className={styles.formInput}
-                        value={editProduct.category || ''}
-                        onChange={(e) => setEditProduct({ ...editProduct, category: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <span className={styles.formLabel}>Product Image</span>
-                      <div className={styles.imagePickerRow}>
-                        {editProduct.image && (
-                          <div className={styles.imageThumb}>
-                            <Image
-                              src={editProduct.image}
-                              alt={editProduct.name || 'Product'}
-                              width={48}
-                              height={48}
-                              className={styles.imageThumbImg}
-                              unoptimized
-                            />
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          className={styles.imageIconBtn}
-                          onClick={() => productImageInputRef.current?.click()}
-                          disabled={imageUploading}
-                          title={imageUploading ? 'Uploading...' : 'Upload product image'}
-                          aria-label="Upload product image"
-                        >
-                          <ImageIcon className="w-5 h-5" />
-                        </button>
-                        <input
-                          ref={productImageInputRef}
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className={styles.hiddenFileInput}
-                          onChange={handleProductImageUpload}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mb-3">
-                    <label className={styles.formLabel}>Description</label>
-                    <input
-                      className={styles.formInput}
-                      value={editProduct.description || ''}
-                      onChange={(e) =>
-                        setEditProduct({ ...editProduct, description: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <span className={styles.formLabel}>Warranty Duration</span>
-                    <div className={styles.warrantyChecks}>
-                      {WARRANTY_DURATION_OPTIONS.map((option) => (
-                        <label key={option} className={styles.warrantyCheckItem}>
-                          <input
-                            type="checkbox"
-                            checked={getWarrantyDuration(editProduct) === option}
-                            onChange={() =>
-                              setEditProduct(withWarrantyDuration(editProduct, option))
-                            }
-                          />
-                          <span>{option}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mb-3">
-                    <label className={styles.warrantyCheckItem}>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(editProduct.certificationImage) || showCertModal}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setCertDraftImage(editProduct.certificationImage || null)
-                            setShowCertModal(true)
-                          } else {
-                            setEditProduct({ ...editProduct, certificationImage: undefined })
-                            setShowCertModal(false)
-                            setCertDraftImage(null)
-                          }
-                        }}
-                      />
-                      <span>Certification</span>
-                    </label>
-                  </div>
-                  <div className="flex gap-2">
-                    <button type="button" className={`${styles.btn} ${styles.btnSuccess}`} onClick={saveProduct}>
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.btn} ${styles.btnDanger}`}
-                      onClick={closeProductEditor}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <AdminTableColumnHeader icon={Package} label="Product" highlighted={highlightedColumn === 'product'} />
-                      <AdminTableColumnHeader icon={Hash} label="Model ID / MFG ID" highlighted={highlightedColumn === 'modelId'} />
-                      <AdminTableColumnHeader icon={TrendingUp} label="Max Price" highlighted={highlightedColumn === 'maxPrice'} />
-                      <AdminTableColumnHeader icon={Tag} label="Discounted" highlighted={highlightedColumn === 'discounted'} />
-                      <AdminTableColumnHeader icon={Percent} label="Discount" highlighted={highlightedColumn === 'discount'} />
-                      <AdminTableColumnHeader icon={Layers} label="Stock" highlighted={highlightedColumn === 'stock'} />
-                      <AdminTableColumnHeader icon={CheckCircle2} label="Status" highlighted={highlightedColumn === 'status'} />
-                      <AdminTableColumnHeader icon={Settings} label="Actions" highlighted={highlightedColumn === 'actions'} />
+                      <AdminTableColumnHeader label="Product" highlighted={highlightedColumn === 'product'} />
+                      <AdminTableColumnHeader label="SKU ID / MFG ID" highlighted={highlightedColumn === 'modelId'} />
+                      <AdminTableColumnHeader label="Max Price" highlighted={highlightedColumn === 'maxPrice'} />
+                      <AdminTableColumnHeader label="Discounted" highlighted={highlightedColumn === 'discounted'} />
+                      <AdminTableColumnHeader label="Discount" highlighted={highlightedColumn === 'discount'} />
+                      <AdminTableColumnHeader label="Stock" highlighted={highlightedColumn === 'stock'} />
+                      <AdminTableColumnHeader label="Status" highlighted={highlightedColumn === 'status'} />
+                      <AdminTableColumnHeader label="Actions" highlighted={highlightedColumn === 'actions'} />
                     </tr>
                   </thead>
                   <tbody>
@@ -1490,7 +1352,7 @@ export default function AdminPage() {
                               </button>
                             </>
                           ) : (
-                            <span className="text-slate-500 text-xs">View only</span>
+                            <span className="text-muted-foreground text-xs">View only</span>
                           )}
                         </td>
                       </tr>
@@ -1508,12 +1370,11 @@ export default function AdminPage() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <AdminTableColumnHeader icon={Hash} label="Order ID" highlighted={highlightedColumn === 'orderId'} />
-                      <AdminTableColumnHeader icon={UserCircle} label="Customer" highlighted={highlightedColumn === 'customer'} />
-                      <AdminTableColumnHeader icon={IndianRupee} label="Total" highlighted={highlightedColumn === 'total'} />
-                      <AdminTableColumnHeader icon={Activity} label="Status" highlighted={highlightedColumn === 'status'} className={styles.tableStatusCol} />
-                      <AdminTableColumnHeader icon={CreditCard} label="Payment" highlighted={highlightedColumn === 'payment'} />
-                      <AdminTableColumnHeader icon={Settings} label="Actions" highlighted={highlightedColumn === 'actions'} />
+                      <AdminTableColumnHeader label="Order ID" highlighted={highlightedColumn === 'orderId'} />
+                      <AdminTableColumnHeader label="Customer" highlighted={highlightedColumn === 'customer'} />
+                      <AdminTableColumnHeader label="Total" highlighted={highlightedColumn === 'total'} />
+                      <AdminTableColumnHeader label="Payment" highlighted={highlightedColumn === 'payment'} />
+                      <AdminTableColumnHeader label="Tracking" highlighted={highlightedColumn === 'actions'} />
                     </tr>
                   </thead>
                   <tbody>
@@ -1548,15 +1409,8 @@ export default function AdminPage() {
                           </button>
                         </td>
                         <td>{formatPrice(order.total)}</td>
-                        <td className={styles.tableStatusCol}>
-                          <OrderStatusDropdown
-                            value={order.status}
-                            disabled={!canManageOrders}
-                            onChange={(status) => updateOrder(order.id, { status })}
-                          />
-                        </td>
                         <td>
-                          <span className={`${styles.badge} ${styles.badgePending}`}>
+                          <span className={`${styles.badge} ${styles[paymentBadgeClass(order.paymentStatus) as keyof typeof styles] ?? styles.badgePending}`}>
                             {order.paymentStatus}
                           </span>
                         </td>
@@ -1576,7 +1430,7 @@ export default function AdminPage() {
                     ))}
                     {orders.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="text-center text-muted-foreground py-8">
+                        <td colSpan={5} className="text-center text-muted-foreground py-8">
                           No orders yet
                         </td>
                       </tr>
@@ -1596,11 +1450,11 @@ export default function AdminPage() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <AdminTableColumnHeader icon={Hash} label="Order ID" highlighted={highlightedColumn === 'orderId'} />
-                      <AdminTableColumnHeader icon={IndianRupee} label="Amount" highlighted={highlightedColumn === 'amount'} />
-                      <AdminTableColumnHeader icon={CreditCard} label="Method" highlighted={highlightedColumn === 'method'} />
-                      <AdminTableColumnHeader icon={Activity} label="Status" highlighted={highlightedColumn === 'payment'} />
-                      <AdminTableColumnHeader icon={RefreshCw} label="Update" highlighted={highlightedColumn === 'update'} />
+                      <AdminTableColumnHeader label="Order ID" highlighted={highlightedColumn === 'orderId'} />
+                      <AdminTableColumnHeader label="Amount" highlighted={highlightedColumn === 'amount'} />
+                      <AdminTableColumnHeader label="Method" highlighted={highlightedColumn === 'method'} />
+                      <AdminTableColumnHeader label="Status" highlighted={highlightedColumn === 'payment'} />
+                      <AdminTableColumnHeader label="Update" highlighted={highlightedColumn === 'update'} />
                     </tr>
                   </thead>
                   <tbody>
@@ -1620,29 +1474,21 @@ export default function AdminPage() {
                         <td>{order.paymentMethod || 'Card'}</td>
                         <td>
                           <span
-                            className={`${styles.badge} ${
-                              order.paymentStatus === 'paid'
-                                ? styles.badgePaid
-                                : styles.badgePending
-                            }`}
+                            className={`${styles.badge} ${styles[paymentBadgeClass(order.paymentStatus) as keyof typeof styles] ?? styles.badgePending}`}
                           >
                             {order.paymentStatus}
                           </span>
                         </td>
                         <td>
-                          <select
-                            className="hds-select-dark hds-select-compact"
+                          <AdminBadgeDropdown
                             value={order.paymentStatus}
+                            options={PAYMENT_STATUSES}
+                            badgeClassMap={PAYMENT_BADGE}
                             disabled={!canManagePayments}
-                            onChange={(e) =>
-                              updateOrder(order.id, { paymentStatus: e.target.value })
+                            onChange={(status) =>
+                              updateOrder(order.id, { paymentStatus: status })
                             }
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="paid">Paid</option>
-                            <option value="failed">Failed</option>
-                            <option value="refunded">Refunded</option>
-                          </select>
+                          />
                         </td>
                       </tr>
                     ))}
@@ -1654,116 +1500,21 @@ export default function AdminPage() {
 
           {tab === 'users' && canManageUsers && (
             <>
-              <h1 className={styles.pageTitle}>Staff & User Management</h1>
-
-              <form onSubmit={createStaffUser} className={styles.editPanel}>
-                <h3 className="font-bold mb-3 text-slate-100">Create New User</h3>
-                <div className={styles.formGrid}>
-                  <div>
-                    <label className={styles.formLabel}>Staff Member *</label>
-                    <StaffMemberDropdown
-                      value={newUserForm.staffRecordId}
-                      staff={availableStaff}
-                      onChange={handleStaffMemberChange}
-                    />
-                    {availableStaff.length === 0 && (
-                      <p className={styles.sectionHint}>
-                        All staff records already have login accounts. Add a new staff record first.
-                      </p>
-                    )}
-                    {newUserForm.username && (
-                      <p className={styles.sectionHint}>Login username: {newUserForm.username}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className={styles.formLabel}>Full Name *</label>
-                    <input
-                      required
-                      className={styles.formInput}
-                      value={newUserForm.name}
-                      onChange={(e) => setNewUserForm({ ...newUserForm, name: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className={styles.formLabel}>Email *</label>
-                    <input
-                      required
-                      type="email"
-                      className={styles.formInput}
-                      value={newUserForm.email}
-                      onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className={styles.formLabel}>Password *</label>
-                    <div className={styles.passwordInputWrap}>
-                      <input
-                        required
-                        type={showNewUserPassword ? 'text' : 'password'}
-                        className={styles.formInput}
-                        value={newUserForm.password}
-                        onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
-                      />
-                      <button
-                        type="button"
-                        className={styles.passwordToggleBtn}
-                        onClick={() => setShowNewUserPassword((prev) => !prev)}
-                        aria-label={showNewUserPassword ? 'Hide password' : 'Show password'}
-                        title={showNewUserPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showNewUserPassword ? (
-                          <EyeOff className={styles.passwordToggleIcon} />
-                        ) : (
-                          <Eye className={styles.passwordToggleIcon} />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className={styles.formLabel}>Role</label>
-                    <RoleDropdown
-                      value={newUserForm.role}
-                      onChange={(role) =>
-                        setNewUserForm({
-                          ...newUserForm,
-                          role,
-                          permissions: permissionsForRole(role as 'staff' | 'admin'),
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className={styles.formLabel}>Phone</label>
-                    <input
-                      className={styles.formInput}
-                      value={newUserForm.phone}
-                      onChange={(e) => setNewUserForm({ ...newUserForm, phone: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <h4 className={styles.sectionTitle}>Accessibility</h4>
-                <p className={styles.sectionHint}>
-                  {newUserForm.role === 'admin'
-                    ? 'Admin role has full system access.'
-                    : 'Select what this staff member can access in the control center.'}
-                </p>
-                <UserPermissionsForm
-                  value={newUserForm.permissions}
-                  onChange={(permissions) => setNewUserForm({ ...newUserForm, permissions })}
-                  disabled={newUserForm.role === 'admin'}
-                />
-
-                <div className="mt-4">
-                <button type="submit" className={`${styles.btn} ${styles.btnPrimary}`}>
-                  Create User
+              <div className={styles.pageHeader}>
+                <h1 className={styles.pageTitle}>Staff & User Management</h1>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={() => setShowCreateUserForm(true)}
+                >
+                  <UserPlus className="w-4 h-4 inline mr-1" />
+                  Create New User
                 </button>
-                </div>
-              </form>
+              </div>
 
               {editingAccess && (
                 <div className={styles.editAccessPanel}>
-                  <h3 className="font-bold mb-1 text-slate-100">
+                  <h3 className="font-bold mb-1 text-foreground">
                     Edit Accessibility — {editingAccess.name}
                   </h3>
                   {isFullAdmin && editingAccess.id !== user?.id && (
@@ -1817,18 +1568,18 @@ export default function AdminPage() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <AdminTableColumnHeader icon={User} label="Username" highlighted={highlightedColumn === 'username'} />
-                      <AdminTableColumnHeader icon={UserCircle} label="Name" highlighted={highlightedColumn === 'name'} />
-                      <AdminTableColumnHeader icon={Mail} label="Email" highlighted={highlightedColumn === 'email'} />
-                      <AdminTableColumnHeader icon={Shield} label="Role" highlighted={highlightedColumn === 'role'} />
-                      <AdminTableColumnHeader icon={Key} label="Accessibility" highlighted={highlightedColumn === 'accessibility'} />
-                      <AdminTableColumnHeader icon={Lock} label="Account Access" highlighted={highlightedColumn === 'accountAccess'} />
+                      <AdminTableColumnHeader label="Username" highlighted={highlightedColumn === 'username'} />
+                      <AdminTableColumnHeader label="Name" highlighted={highlightedColumn === 'name'} />
+                      <AdminTableColumnHeader label="Email" highlighted={highlightedColumn === 'email'} />
+                      <AdminTableColumnHeader label="Role" highlighted={highlightedColumn === 'role'} />
+                      <AdminTableColumnHeader label="Accessibility" highlighted={highlightedColumn === 'accessibility'} />
+                      <AdminTableColumnHeader label="Account Access" highlighted={highlightedColumn === 'accountAccess'} />
                       {isFullAdmin && (
-                        <AdminTableColumnHeader icon={Eye} label="Password" highlighted={highlightedColumn === 'password'} />
+                        <AdminTableColumnHeader label="Password" highlighted={highlightedColumn === 'password'} />
                       )}
-                      <AdminTableColumnHeader icon={Calendar} label="Created" highlighted={highlightedColumn === 'created'} />
+                      <AdminTableColumnHeader label="Created" highlighted={highlightedColumn === 'created'} />
                       {isFullAdmin && (
-                        <AdminTableColumnHeader icon={Trash2} label="Delete" highlighted={highlightedColumn === 'delete'} />
+                        <AdminTableColumnHeader label="Delete" highlighted={highlightedColumn === 'delete'} />
                       )}
                     </tr>
                   </thead>
@@ -1951,12 +1702,6 @@ export default function AdminPage() {
                 onMessage={showMsg}
                 onError={setError}
               />
-              <InvoiceTemplatePanel
-                isAdmin={isFullAdmin}
-                onMessage={showMsg}
-                onError={setError}
-                onOpenInvoices={() => setTab('invoices')}
-              />
               <TermsAgreementTemplatePanel
                 isAdmin={isFullAdmin}
                 onMessage={showMsg}
@@ -1979,6 +1724,365 @@ export default function AdminPage() {
           order={viewPaymentOrder}
           onClose={() => setViewPaymentOrder(null)}
         />
+      )}
+
+      {showCreateUserForm && (
+        <div
+          className={styles.createUserModalBackdrop}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-user-title"
+          onClick={closeCreateUserModal}
+        >
+          <div className={styles.createUserModal} onClick={(e) => e.stopPropagation()}>
+            <AdminSlideUp forceAnimate delayMs={0}>
+              <div className={styles.productModalHeader}>
+                <h3 id="create-user-title" className={styles.productModalTitle}>
+                  Create New User
+                </h3>
+                <button
+                  type="button"
+                  className={styles.productModalClose}
+                  onClick={closeCreateUserModal}
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </AdminSlideUp>
+
+            <form onSubmit={createStaffUser}>
+              <AdminSlideUp forceAnimate delayMs={60}>
+                <div className={styles.formGrid}>
+                  <div>
+                    <label className={styles.formLabel}>Staff Member *</label>
+                    <StaffMemberDropdown
+                      value={newUserForm.staffRecordId}
+                      staff={availableStaff}
+                      onChange={handleStaffMemberChange}
+                    />
+                    {availableStaff.length === 0 && (
+                      <p className={styles.sectionHint}>
+                        All staff records already have login accounts. Add a new staff record first.
+                      </p>
+                    )}
+                    {newUserForm.username && (
+                      <p className={styles.sectionHint}>Login username: {newUserForm.username}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className={styles.formLabel}>Full Name *</label>
+                    <input
+                      required
+                      className={styles.formInput}
+                      value={newUserForm.name}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className={styles.formLabel}>Email *</label>
+                    <input
+                      required
+                      type="email"
+                      className={styles.formInput}
+                      value={newUserForm.email}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className={styles.formLabel}>Password *</label>
+                    <div className={styles.passwordInputWrap}>
+                      <input
+                        required
+                        type={showNewUserPassword ? 'text' : 'password'}
+                        className={styles.formInput}
+                        value={newUserForm.password}
+                        onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                      />
+                      <button
+                        type="button"
+                        className={styles.passwordToggleBtn}
+                        onClick={() => setShowNewUserPassword((prev) => !prev)}
+                        aria-label={showNewUserPassword ? 'Hide password' : 'Show password'}
+                        title={showNewUserPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showNewUserPassword ? (
+                          <EyeOff className={styles.passwordToggleIcon} />
+                        ) : (
+                          <Eye className={styles.passwordToggleIcon} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={styles.formLabel}>Role</label>
+                    <RoleDropdown
+                      value={newUserForm.role}
+                      onChange={(role) =>
+                        setNewUserForm({
+                          ...newUserForm,
+                          role,
+                          permissions: permissionsForRole(role as 'staff' | 'admin'),
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className={styles.formLabel}>Phone</label>
+                    <input
+                      className={styles.formInput}
+                      value={newUserForm.phone}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </AdminSlideUp>
+
+              <AdminSlideUp forceAnimate delayMs={120}>
+                <h4 className={styles.sectionTitle}>Accessibility</h4>
+                <p className={styles.sectionHint}>
+                  {newUserForm.role === 'admin'
+                    ? 'Admin role has full system access.'
+                    : 'Select what this staff member can access in the control center.'}
+                </p>
+                <UserPermissionsForm
+                  value={newUserForm.permissions}
+                  onChange={(permissions) => setNewUserForm({ ...newUserForm, permissions })}
+                  disabled={newUserForm.role === 'admin'}
+                />
+              </AdminSlideUp>
+
+              <AdminSlideUp forceAnimate delayMs={180}>
+                <div className={`${styles.createUserModalActions} mt-4`}>
+                  <button type="submit" className={`${styles.btn} ${styles.btnPrimary}`}>
+                    Create User
+                  </button>
+                  <button type="button" className={styles.btn} onClick={closeCreateUserModal}>
+                    Cancel
+                  </button>
+                </div>
+              </AdminSlideUp>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {productDraftRows && newProduct && (
+        <ProductBulkEntryModal
+          rows={productDraftRows}
+          saving={bulkSaving}
+          imageUploading={imageUploading}
+          onRowsChange={setProductDraftRows}
+          onImageUpload={handleBulkRowImageUpload}
+          onSave={saveBulkProducts}
+          onClose={closeProductEditor}
+        />
+      )}
+
+      {editProduct && !newProduct && (
+        <div
+          className={styles.productModalBackdrop}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="product-editor-title"
+          onClick={closeProductEditor}
+        >
+          <div className={styles.productModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.productModalHeader}>
+              <h3 id="product-editor-title" className={styles.productModalTitle}>
+                {newProduct ? 'New Product' : 'Edit Product'}
+              </h3>
+              <button
+                type="button"
+                className={styles.productModalClose}
+                onClick={closeProductEditor}
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className={styles.formGrid}>
+              <div>
+                <label className={styles.formLabel}>Name</label>
+                <input
+                  className={styles.formInput}
+                  value={editProduct.name || ''}
+                  onChange={(e) => setEditProduct({ ...editProduct, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={styles.formLabel}>SKU ID *</label>
+                <input
+                  required
+                  className={styles.formInput}
+                  value={editProduct.modelId || ''}
+                  onChange={(e) => setEditProduct({ ...editProduct, modelId: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={styles.formLabel}>Manufacturing ID *</label>
+                <input
+                  required
+                  className={styles.formInput}
+                  value={editProduct.manufacturingId || ''}
+                  onChange={(e) =>
+                    setEditProduct({ ...editProduct, manufacturingId: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className={styles.formLabel}>Max Price (₹)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className={styles.formInput}
+                  value={maxPriceInput}
+                  onChange={(e) => handlePricingChange('max', 'max', e.target.value)}
+                  onBlur={() => normalizePricingField('max')}
+                />
+              </div>
+              <div>
+                <label className={styles.formLabel}>Discount %</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className={styles.formInput}
+                  value={discountInput}
+                  placeholder="0"
+                  onChange={(e) => handlePricingChange('discount', 'discount', e.target.value)}
+                  onBlur={() => normalizePricingField('discount')}
+                />
+              </div>
+              <div>
+                <label className={styles.formLabel}>Discounted Price (₹)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className={styles.formInput}
+                  value={discountedPriceInput}
+                  onChange={(e) => handlePricingChange('sale', 'sale', e.target.value)}
+                  onBlur={() => normalizePricingField('sale')}
+                />
+              </div>
+              <div>
+                <label className={styles.formLabel}>Stock Qty</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className={styles.formInput}
+                  value={stockInput}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    if (raw === '' || /^\d+$/.test(raw)) {
+                      setStockInput(raw)
+                    }
+                  }}
+                  onBlur={() => {
+                    const parsed = stockInput === '' ? 0 : Math.max(0, parseInt(stockInput, 10) || 0)
+                    setStockInput(String(parsed))
+                  }}
+                />
+              </div>
+              <div>
+                <label className={styles.formLabel}>Category</label>
+                <input
+                  className={styles.formInput}
+                  value={editProduct.category || ''}
+                  onChange={(e) => setEditProduct({ ...editProduct, category: e.target.value })}
+                />
+              </div>
+              <div>
+                <span className={styles.formLabel}>Product Image</span>
+                <div className={styles.imagePickerRow}>
+                  {editProduct.image && (
+                    <div className={styles.imageThumb}>
+                      <Image
+                        src={editProduct.image}
+                        alt={editProduct.name || 'Product'}
+                        width={48}
+                        height={48}
+                        className={styles.imageThumbImg}
+                        unoptimized
+                      />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className={styles.imageIconBtn}
+                    onClick={() => productImageInputRef.current?.click()}
+                    disabled={imageUploading}
+                    title={imageUploading ? 'Uploading...' : 'Upload product image'}
+                    aria-label="Upload product image"
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                  </button>
+                  <input
+                    ref={productImageInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className={styles.hiddenFileInput}
+                    onChange={handleProductImageUpload}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="mb-3">
+              <label className={styles.formLabel}>Description</label>
+              <input
+                className={styles.formInput}
+                value={editProduct.description || ''}
+                onChange={(e) => setEditProduct({ ...editProduct, description: e.target.value })}
+              />
+            </div>
+            <div className="mb-3">
+              <span className={styles.formLabel}>Warranty Duration</span>
+              <div className={styles.warrantyChecks}>
+                {WARRANTY_DURATION_OPTIONS.map((option) => (
+                  <label key={option} className={styles.warrantyCheckItem}>
+                    <input
+                      type="checkbox"
+                      checked={getWarrantyDuration(editProduct) === option}
+                      onChange={() => setEditProduct(withWarrantyDuration(editProduct, option))}
+                    />
+                    <span>{option}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="mb-3">
+              <label className={styles.warrantyCheckItem}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(editProduct.certificationImage) || showCertModal}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setCertDraftImage(editProduct.certificationImage || null)
+                      setShowCertModal(true)
+                    } else {
+                      setEditProduct({ ...editProduct, certificationImage: undefined })
+                      setShowCertModal(false)
+                      setCertDraftImage(null)
+                    }
+                  }}
+                />
+                <span>Certification</span>
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" className={`${styles.btn} ${styles.btnSuccess}`} onClick={saveProduct}>
+                Save
+              </button>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnDanger}`}
+                onClick={closeProductEditor}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {previewProduct && (
@@ -2044,6 +2148,8 @@ export default function AdminPage() {
           onDismiss={dismissUpdateToast}
         />
       )}
+
+      {error && <AdminErrorToast message={error} onDismiss={() => setError('')} />}
     </AdminShell>
   )
 }

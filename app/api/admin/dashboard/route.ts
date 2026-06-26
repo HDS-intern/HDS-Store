@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getUserBySession, getTokenFromRequest, requirePermission } from '@/lib/auth'
 import { buildSalesChartData } from '@/lib/dashboardSalesChart'
+import { buildDashboardOverviewExtras } from '@/lib/dashboardOverview'
 import { ensureDailyAbsences } from '@/lib/staffAttendance'
 import type { DashboardStats } from '@/lib/types'
 
@@ -48,6 +49,7 @@ export async function GET(request: Request) {
     ).get(today) as { c: number }
 
     const salesChart = buildSalesChartData(db)
+    const overview = buildDashboardOverviewExtras(db)
 
     const attendanceRows = db.prepare(`
       SELECT a.id, a.staff_id, a.date, a.status, a.check_in, a.check_out, s.employee_name
@@ -83,6 +85,7 @@ export async function GET(request: Request) {
         checkIn: r.check_in ?? undefined,
         checkOut: r.check_out ?? undefined,
       })),
+      ...overview,
     }
 
     return NextResponse.json(stats)

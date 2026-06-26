@@ -60,7 +60,7 @@ export function BulkOrderTemplatePanel({
       <p className={styles.bulkHint}>
         Upload the master template used on the customer Bulk Order Sheet page. Only{' '}
         <strong>.xlsx</strong> and <strong>.csv</strong> files are accepted. Columns must
-        include <strong>Model Number</strong> and <strong>Qty</strong>.
+        include <strong>SKU ID</strong> and <strong>Qty</strong>.
       </p>
       <div className={styles.bulkActions}>
         <a href="/api/bulk-order/template?format=xlsx" className={styles.bulkBtnOutline}>

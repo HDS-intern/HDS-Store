@@ -10,7 +10,7 @@ const TEMPLATE_DIR = path.join(process.cwd(), 'data', 'templates')
 const CUSTOM_TEMPLATE = path.join(TEMPLATE_DIR, 'bulk-order-template.xlsx')
 
 function buildWorkbook() {
-  const rows = [['Model Number', 'Qty'], ...BULK_TEMPLATE_SAMPLE.map((r) => [r.modelNumber, r.qty])]
+  const rows = [['SKU ID', 'Qty'], ...BULK_TEMPLATE_SAMPLE.map((r) => [r.modelNumber, r.qty])]
   const sheet = XLSX.utils.aoa_to_sheet(rows)
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, sheet, 'Bulk Order')

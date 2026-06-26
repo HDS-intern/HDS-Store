@@ -35,9 +35,12 @@ const PRODUCT_SERIES: SeriesDef[] = [
   { key: 'warrantyClaimed', label: 'Warranty claimed', color: '#c4b5fd' },
 ]
 
-const CHART_WIDTH = 560
-const CHART_HEIGHT = 240
-const PAD = { top: 20, right: 24, bottom: 44, left: 52 }
+const CHART_WIDTH_DEFAULT = 560
+const CHART_HEIGHT_DEFAULT = 240
+const CHART_WIDTH_COMPACT = 480
+const CHART_HEIGHT_COMPACT = 160
+const PAD_DEFAULT = { top: 20, right: 24, bottom: 44, left: 52 }
+const PAD_COMPACT = { top: 14, right: 20, bottom: 32, left: 44 }
 
 type Point = { x: number; y: number; value: number; index: number; month: string }
 
@@ -45,24 +48,24 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
-function valueToY(value: number, maxValue: number, innerH: number): number {
+function valueToY(value: number, maxValue: number, innerH: number, padTop: number): number {
   const safe = clamp(value, 0, maxValue)
-  return PAD.top + innerH - (safe / maxValue) * innerH
+  return padTop + innerH - (safe / maxValue) * innerH
 }
 
 /** Monotone cubic curve — stays between adjacent data values (no overshoot below 0 or above max). */
-function monotoneLinePath(points: Point[], maxValue: number, innerH: number): string {
+function monotoneLinePath(points: Point[], maxValue: number, innerH: number, padTop: number): string {
   const n = points.length
   if (n === 0) return ''
   if (n === 1) {
-    const y = valueToY(points[0].value, maxValue, innerH)
+    const y = valueToY(points[0].value, maxValue, innerH, padTop)
     return `M ${points[0].x} ${y}`
   }
 
   const xs = points.map((p) => p.x)
   const values = points.map((p) => p.value)
-  const minY = PAD.top
-  const maxY = PAD.top + innerH
+  const minY = padTop
+  const maxY = padTop + innerH
 
   const dxs: number[] = []
   const slopes: number[] = []
@@ -96,7 +99,7 @@ function monotoneLinePath(points: Point[], maxValue: number, innerH: number): st
     }
   }
 
-  const y0 = valueToY(values[0], maxValue, innerH)
+  const y0 = valueToY(values[0], maxValue, innerH, padTop)
   let path = `M ${xs[0]} ${y0}`
 
   for (let i = 0; i < n - 1; i++) {
@@ -106,18 +109,24 @@ function monotoneLinePath(points: Point[], maxValue: number, innerH: number): st
     const hi = Math.max(values[i], values[i + 1])
     const v1 = clamp(values[i] + (m[i] * dxs[i]) / 3, lo, hi)
     const v2 = clamp(values[i + 1] - (m[i + 1] * dxs[i]) / 3, lo, hi)
-    const cp1y = clamp(valueToY(v1, maxValue, innerH), minY, maxY)
-    const cp2y = clamp(valueToY(v2, maxValue, innerH), minY, maxY)
-    const yEnd = valueToY(values[i + 1], maxValue, innerH)
+    const cp1y = clamp(valueToY(v1, maxValue, innerH, padTop), minY, maxY)
+    const cp2y = clamp(valueToY(v2, maxValue, innerH, padTop), minY, maxY)
+    const yEnd = valueToY(values[i + 1], maxValue, innerH, padTop)
     path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${xs[i + 1]} ${yEnd}`
   }
 
   return path
 }
 
-function monotoneAreaPath(points: Point[], maxValue: number, innerH: number, baseY: number): string {
+function monotoneAreaPath(
+  points: Point[],
+  maxValue: number,
+  innerH: number,
+  baseY: number,
+  padTop: number
+): string {
   if (points.length === 0) return ''
-  const line = monotoneLinePath(points, maxValue, innerH)
+  const line = monotoneLinePath(points, maxValue, innerH, padTop)
   const last = points[points.length - 1]
   const first = points[0]
   return `${line} L ${last.x} ${baseY} L ${first.x} ${baseY} Z`
@@ -149,9 +158,13 @@ function formatXLabel(row: SalesChartMonth): { line1: string; line2: string } {
 
 type SalesLineChartProps = {
   initialData: SalesChartMonth[]
+  compact?: boolean
 }
 
-export function SalesLineChart({ initialData }: SalesLineChartProps) {
+export function SalesLineChart({ initialData, compact = false }: SalesLineChartProps) {
+  const CHART_WIDTH = compact ? CHART_WIDTH_COMPACT : CHART_WIDTH_DEFAULT
+  const CHART_HEIGHT = compact ? CHART_HEIGHT_COMPACT : CHART_HEIGHT_DEFAULT
+  const PAD = compact ? PAD_COMPACT : PAD_DEFAULT
   const chartId = useId().replace(/:/g, '')
   const filterRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState<SalesChartMonth[]>(initialData)
@@ -270,19 +283,19 @@ export function SalesLineChart({ initialData }: SalesLineChartProps) {
       const coords: Point[] = data.map((row, index) => {
         const value = row[s.key] as number
         const x = xPositions[index]
-        const y = valueToY(value, maxValue, innerH)
+        const y = valueToY(value, maxValue, innerH, PAD.top)
         return { x, y, value, index, month: row.month }
       })
       return {
         ...s,
         coords,
-        linePath: monotoneLinePath(coords, maxValue, innerH),
-        areaPath: monotoneAreaPath(coords, maxValue, innerH, baseY),
+        linePath: monotoneLinePath(coords, maxValue, innerH, PAD.top),
+        areaPath: monotoneAreaPath(coords, maxValue, innerH, baseY, PAD.top),
       }
     })
 
     return { innerW, innerH, maxValue, yTicks, xStep, xPositions, baseY, lines }
-  }, [data, series])
+  }, [data, series, CHART_WIDTH, CHART_HEIGHT, PAD])
 
   const pickIndexFromX = useCallback(
     (clientX: number, svg: SVGSVGElement) => {
@@ -302,7 +315,7 @@ export function SalesLineChart({ initialData }: SalesLineChartProps) {
       })
       return nearest
     },
-    [plot.xPositions]
+    [plot.xPositions, CHART_WIDTH]
   )
 
   const handlePointerMove = useCallback(
@@ -322,7 +335,7 @@ export function SalesLineChart({ initialData }: SalesLineChartProps) {
   }
 
   return (
-    <div className={styles.wrap}>
+    <div className={`${styles.wrap} ${compact ? styles.wrapCompact : ''}`}>
       <div className={styles.toolbar}>
         <div className={styles.toolbarLeft}>
           <div className={styles.filterWrap} ref={filterRef}>

@@ -38,7 +38,7 @@ const RULES: BotRule[] = [
   {
     keywords: ['bulk', 'sheet', 'wholesale'],
     reply:
-      'Use the **Bulk Order Sheet** page to upload a template with model numbers and quantities. Our team will confirm stock and pricing.',
+      'Use the **Bulk Order Sheet** page to upload a template with SKU IDs and quantities. Our team will confirm stock and pricing.',
   },
   {
     keywords: ['ticket', 'support ticket', 'live chat', 'talk to', 'speak to', 'representative'],

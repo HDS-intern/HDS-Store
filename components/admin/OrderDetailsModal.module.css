@@ -10,6 +10,44 @@
   backdrop-filter: blur(4px);
 }
 
+.backdropEnter {
+  animation: modalBackdropIn 0.3s ease forwards;
+}
+
+.popupEnter {
+  opacity: 0;
+  animation: modalPopupIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes modalBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalPopupIn {
+  from {
+    opacity: 0;
+    transform: translateY(64px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdropEnter,
+  .popupEnter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .popup {
   width: 100%;
   max-width: 44rem;
@@ -17,7 +55,7 @@
   overflow-y: auto;
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #1e293b;
+  background: var(--card);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
 }
 
@@ -33,13 +71,13 @@
 .title {
   font-size: 1.125rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
   margin: 0;
 }
 
 .subtitle {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin: 0.25rem 0 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
@@ -53,7 +91,7 @@
   border: none;
   border-radius: 0.5rem;
   background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   cursor: pointer;
 }
 
@@ -78,13 +116,13 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #64748b;
+  color: var(--muted-foreground);
   margin-bottom: 0.2rem;
 }
 
 .value {
   font-size: 0.875rem;
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .section {
@@ -96,13 +134,13 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #64748b;
+  color: var(--muted-foreground);
   margin: 0 0 0.625rem;
 }
 
 .detailLine {
   font-size: 0.8125rem;
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   margin: 0 0 0.35rem;
   line-height: 1.45;
 }
@@ -122,15 +160,15 @@
 .itemsTable th {
   text-align: left;
   padding: 0.625rem 0.75rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   font-weight: 600;
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-  background: #0f172a;
+  background: var(--background);
 }
 
 .itemsTable td {
   padding: 0.625rem 0.75rem;
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   border-bottom: 1px solid rgba(148, 163, 184, 0.08);
 }
 
@@ -140,13 +178,13 @@
   align-items: center;
   padding: 0.875rem 1rem;
   border-radius: 0.625rem;
-  background: rgba(53, 106, 176, 0.12);
-  color: #e2e8f0;
+  background: var(--accent);
+  color: var(--foreground);
   font-size: 0.9375rem;
 }
 
 .totalRow strong {
-  color: #93c5fd;
+  color: var(--primary);
   font-size: 1.125rem;
 }
 
@@ -176,7 +214,7 @@
 
 .badgeRefunded {
   background: rgba(148, 163, 184, 0.15);
-  color: #cbd5e1;
+  color: var(--muted-foreground);
 }
 
 .actions {
@@ -201,7 +239,7 @@
 
 .btnSecondary {
   background: #334155;
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .btnSecondary:hover {

@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     if (!product.modelId?.trim()) {
-      return NextResponse.json({ error: 'Model ID is required' }, { status: 400 })
+      return NextResponse.json({ error: 'SKU ID is required' }, { status: 400 })
     }
 
     if (!product.manufacturingId?.trim()) {

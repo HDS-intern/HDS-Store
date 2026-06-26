@@ -19,7 +19,7 @@
   max-height: min(90vh, 52rem);
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #1e293b;
+  background: var(--card);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
   animation: scaleIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
@@ -37,13 +37,13 @@
 .title {
   font-size: 1.125rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
   margin: 0;
 }
 
 .subtitle {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin: 0.25rem 0 0;
 }
 
@@ -56,7 +56,7 @@
   border: none;
   border-radius: 0.5rem;
   background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -70,7 +70,7 @@
   min-height: 0;
   overflow: auto;
   padding: 1rem 1.25rem 1.25rem;
-  background: #0f172a;
+  background: var(--background);
 }
 
 .loading,
@@ -79,7 +79,7 @@
   align-items: center;
   justify-content: center;
   min-height: 16rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-size: 0.9375rem;
 }
 
@@ -93,7 +93,7 @@
   height: calc(90vh - 8rem);
   border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--card);
 }
 
 .textContent {
@@ -103,33 +103,33 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.8125rem;
   line-height: 1.6;
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .tableWrap {
   overflow: auto;
   border-radius: 0.75rem;
   border: 1px solid rgba(148, 163, 184, 0.15);
-  background: #fff;
+  background: var(--card);
 }
 
 .tableWrap table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8125rem;
-  color: #0f172a;
+  color: var(--foreground);
 }
 
 .tableWrap th,
 .tableWrap td {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   padding: 0.5rem 0.75rem;
   text-align: left;
   vertical-align: top;
 }
 
 .tableWrap th {
-  background: #f1f5f9;
+  background: var(--muted);
   font-weight: 700;
 }
 

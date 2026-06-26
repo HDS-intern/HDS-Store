@@ -10,7 +10,7 @@ export type ParsedBulkLine = BulkOrderRow & {
   error?: string
 }
 
-const MODEL_HEADERS = ['model id', 'model number', 'model', 'model no', 'modelno', 'sku', 'product sku']
+const MODEL_HEADERS = ['Template must include "SKU ID" and "Qty" columns.']
 const QTY_HEADERS = ['qty', 'quantity', 'qnty', 'count']
 
 function normalizeHeader(value: string): string {

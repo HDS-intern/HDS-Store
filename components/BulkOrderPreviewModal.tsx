@@ -48,7 +48,7 @@ export function BulkOrderPreviewModal({
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Model Number</th>
+                <th>SKU ID</th>
                 <th>Product</th>
                 <th>Qty</th>
                 <th>Unit Price</th>

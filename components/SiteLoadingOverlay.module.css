@@ -81,7 +81,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #93c5fd;
+  color: var(--primary);
   animation: labelFade 1.4s ease-in-out infinite;
 }
 

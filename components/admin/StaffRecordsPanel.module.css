@@ -1,5 +1,5 @@
 .formPanel {
-  background: #1e293b;
+  background: var(--card);
   border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 0.875rem;
   padding: 1.25rem;
@@ -9,7 +9,7 @@
 .formTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--foreground);
   margin-bottom: 1rem;
 }
 
@@ -22,7 +22,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #64748b;
+  color: var(--muted-foreground);
   margin-bottom: 0.75rem;
   padding-bottom: 0.375rem;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
@@ -44,14 +44,14 @@
   display: block;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin-bottom: 0.25rem;
 }
 
 .fieldHint {
   margin: 0.375rem 0 0;
   font-size: 0.6875rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   line-height: 1.4;
 }
 
@@ -61,8 +61,8 @@
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--background);
+  color: var(--foreground);
   font-size: 0.875rem;
 }
 
@@ -84,7 +84,7 @@
   border-radius: 0.5rem;
   object-fit: cover;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #0f172a;
+  background: var(--background);
 }
 
 .btnRow {
@@ -109,7 +109,7 @@
   padding: 0.5rem 1.25rem;
   border-radius: 0.5rem;
   background: transparent;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-weight: 600;
   font-size: 0.875rem;
   border: 1px solid rgba(148, 163, 184, 0.3);
@@ -128,7 +128,7 @@
 
 .tableWrap {
   overflow-x: auto;
-  background: #1e293b;
+  background: var(--card);
   border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 0.875rem;
 }
@@ -142,14 +142,14 @@
 .table th {
   text-align: left;
   padding: 0.75rem 1rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   font-weight: 600;
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .table td {
   padding: 0.75rem 1rem;
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   border-bottom: 1px solid rgba(148, 163, 184, 0.08);
 }
 
@@ -192,20 +192,20 @@
 }
 
 .availabilityNa {
-  color: #64748b;
+  color: var(--muted-foreground);
   font-size: 0.8125rem;
 }
 
 .pageHeading {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
   margin-bottom: 0.5rem;
 }
 
 .pageDesc {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   margin-bottom: 1.25rem;
 }
 
@@ -213,7 +213,7 @@
   padding: 0.3rem 0.625rem;
   border-radius: 0.375rem;
   background: rgba(59, 130, 246, 0.15);
-  color: #93c5fd;
+  color: var(--primary);
   font-size: 0.75rem;
   border: none;
   cursor: pointer;
@@ -225,14 +225,14 @@
   padding: 0;
   margin: 0;
   font: inherit;
-  color: #e2e8f0;
+  color: var(--foreground);
   cursor: pointer;
   text-align: left;
 }
 
 .nameBtn:hover {
   text-decoration: underline;
-  color: #93c5fd;
+  color: var(--primary);
 }
 
 .nameBtn:focus-visible {

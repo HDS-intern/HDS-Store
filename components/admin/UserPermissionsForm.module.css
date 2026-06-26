@@ -23,19 +23,19 @@
   padding: 0.625rem 0.75rem;
   border-radius: 0.625rem;
   border: 1px solid rgba(148, 163, 184, 0.15);
-  background: #0f172a;
+  background: var(--background);
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .item:hover:not(.itemDisabled) {
   border-color: rgba(53, 106, 176, 0.35);
-  background: #1e293b;
+  background: var(--card);
 }
 
 .itemActive {
   border-color: rgba(53, 106, 176, 0.45);
-  background: rgba(53, 106, 176, 0.1);
+  background: var(--accent);
 }
 
 .itemDisabled {
@@ -48,7 +48,7 @@
   width: 1rem;
   height: 1rem;
   flex-shrink: 0;
-  accent-color: rgba(53, 106, 176, 1);
+  accent-color: var(--primary);
   cursor: inherit;
 }
 
@@ -61,11 +61,11 @@
 .label {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .hint {
   font-size: 0.6875rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   line-height: 1.35;
 }

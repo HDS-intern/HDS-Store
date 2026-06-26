@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server'
  * In development, allow API auth requests from other devices on the LAN
  * (same app opened via http://<host-ip>:3000).
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (process.env.NODE_ENV !== 'development') {
     return NextResponse.next()
   }

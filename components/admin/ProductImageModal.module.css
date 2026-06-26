@@ -18,7 +18,7 @@
   padding: 1.25rem;
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #1e293b;
+  background: var(--card);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
   animation: scaleIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -35,7 +35,7 @@
   border: none;
   border-radius: 0.5rem;
   background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   cursor: pointer;
 }
 
@@ -46,13 +46,13 @@
 .title {
   font-size: 1.125rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
   margin: 0 2rem 0.35rem 0;
 }
 
 .meta {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin: 0 0 1rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
@@ -63,7 +63,7 @@
   aspect-ratio: 4 / 3;
   border-radius: 0.75rem;
   overflow: hidden;
-  background: #0f172a;
+  background: var(--background);
   border: 1px solid rgba(148, 163, 184, 0.12);
 }
 

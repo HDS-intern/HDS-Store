@@ -87,7 +87,7 @@
   flex-direction: column;
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.22);
-  background: #fff;
+  background: var(--card);
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.22);
   overflow: hidden;
   transform-origin: bottom right;
@@ -138,7 +138,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 0.35rem;
   padding: 0.5rem;
-  background: #f8fafc;
+  background: var(--muted);
   border-bottom: 1px solid rgba(148, 163, 184, 0.18);
 }
 
@@ -159,16 +159,16 @@
 
 .tab {
   background: transparent;
-  color: #64748b;
+  color: var(--muted-foreground);
 }
 
 .tab:hover {
-  background: rgba(53, 106, 176, 0.08);
+  background: var(--muted);
   color: #1e3a5f;
 }
 
 .tabActive {
-  background: #fff;
+  background: var(--card);
   color: #1e3a5f;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
@@ -200,7 +200,7 @@
   margin: 0;
   font-size: 0.6875rem;
   line-height: 1.45;
-  color: #475569;
+  color: var(--muted-foreground);
 }
 
 .liveSupportBtn,
@@ -281,7 +281,7 @@
 
 .bubbleBot {
   background: #eef2ff;
-  color: #1e293b;
+  color: var(--foreground);
   border: 1px solid rgba(99, 102, 241, 0.15);
   border-bottom-left-radius: 0.25rem;
 }
@@ -302,10 +302,10 @@
 
 .notice {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   text-align: center;
   padding: 0.35rem 0.5rem;
-  background: rgba(53, 106, 176, 0.08);
+  background: var(--muted);
   border-radius: 0.5rem;
 }
 
@@ -314,7 +314,7 @@
   gap: 0.5rem;
   padding: 0.75rem;
   border-top: 1px solid rgba(148, 163, 184, 0.18);
-  background: #fff;
+  background: var(--card);
 }
 
 .input {
@@ -454,7 +454,7 @@
   gap: 0.3rem;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--muted-foreground);
 }
 
 .ticketField input,
@@ -464,8 +464,8 @@
   border-radius: 0.625rem;
   border: 1px solid rgba(148, 163, 184, 0.35);
   font-size: 0.8125rem;
-  color: #1e293b;
-  background: #fff;
+  color: var(--foreground);
+  background: var(--card);
   outline: none;
 }
 
@@ -533,7 +533,7 @@
   margin: 0;
   font-size: 0.8125rem;
   line-height: 1.5;
-  color: #64748b;
+  color: var(--muted-foreground);
 }
 
 @media (max-width: 480px) {

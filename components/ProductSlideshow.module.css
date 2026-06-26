@@ -1,7 +1,7 @@
 .slideshow {
   position: relative;
   width: 100%;
-  background: rgba(53, 106, 176, 0.06);
+  background: var(--muted);
 }
 
 .inner {
@@ -155,8 +155,8 @@
   padding: 0.75rem 1.5rem;
   border-radius: 0.75rem;
   font-weight: 600;
-  color: rgba(53, 106, 176, 1);
-  background: rgba(255, 255, 255, 1);
+  color: var(--primary);
+  background: var(--brand-white);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
@@ -194,13 +194,13 @@
   justify-content: center;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.9);
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   transition: transform 0.25s ease, background 0.25s ease;
 }
 
 .arrow:hover {
-  background: rgba(255, 255, 255, 1);
+  background: var(--brand-white);
   transform: translateY(-50%) scale(1.08);
 }
 
@@ -236,7 +236,7 @@
 
 .dotActive {
   width: 1.75rem;
-  background: rgba(255, 255, 255, 1);
+  background: var(--brand-white);
 }
 
 @media (max-width: 640px) {

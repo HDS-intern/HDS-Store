@@ -1,10 +1,21 @@
 import { getAllProducts, getDb } from './db'
 
 export const BAD_REVIEW_MAX_RATING = 2
+export const GOOD_REVIEW_MIN_RATING = 4
 
 export interface BadReviewChartMonth {
   key: string
   month: string
+  badReviews: number
+  goodReviews: number
+  totalReviews: number
+}
+
+export interface ProductReviewScore {
+  productId: string
+  productName: string
+  averageScore: number
+  goodReviews: number
   badReviews: number
   totalReviews: number
 }
@@ -138,6 +149,10 @@ export function isBadReview(rating: number): boolean {
   return rating <= BAD_REVIEW_MAX_RATING
 }
 
+export function isGoodReview(rating: number): boolean {
+  return rating >= GOOD_REVIEW_MIN_RATING
+}
+
 export function getBadReviewProducts(): BadReviewProductSummary[] {
   const byProduct = new Map<string, BadReviewProductSummary>()
 
@@ -167,10 +182,10 @@ export function getBadReviewChart(productId?: string): BadReviewChartMonth[] {
     (review) => !productId || review.productId === productId
   )
   const monthKeys = lastNMonthKeys(6)
-  const counts = new Map<string, { bad: number; total: number }>()
+  const counts = new Map<string, { bad: number; good: number; total: number }>()
 
   for (const key of monthKeys) {
-    counts.set(key, { bad: 0, total: 0 })
+    counts.set(key, { bad: 0, good: 0, total: 0 })
   }
 
   for (const review of reviews) {
@@ -179,14 +194,72 @@ export function getBadReviewChart(productId?: string): BadReviewChartMonth[] {
     if (!bucket) continue
     bucket.total += 1
     if (isBadReview(review.rating)) bucket.bad += 1
+    if (isGoodReview(review.rating)) bucket.good += 1
   }
 
   return monthKeys.map((key) => ({
     key,
     month: formatMonthLabel(key),
     badReviews: counts.get(key)!.bad,
+    goodReviews: counts.get(key)!.good,
     totalReviews: counts.get(key)!.total,
   }))
+}
+
+export function getProductReviewScores(): ProductReviewScore[] {
+  const byProduct = new Map<
+    string,
+    { productName: string; ratings: number[]; good: number; bad: number }
+  >()
+
+  for (const review of collectAllReviews()) {
+    const existing = byProduct.get(review.productId) ?? {
+      productName: review.productName,
+      ratings: [],
+      good: 0,
+      bad: 0,
+    }
+    existing.ratings.push(review.rating)
+    if (isGoodReview(review.rating)) existing.good += 1
+    if (isBadReview(review.rating)) existing.bad += 1
+    byProduct.set(review.productId, existing)
+  }
+
+  return [...byProduct.entries()]
+    .map(([productId, val]) => ({
+      productId,
+      productName: val.productName,
+      averageScore:
+        val.ratings.length > 0
+          ? Math.round((val.ratings.reduce((s, r) => s + r, 0) / val.ratings.length) * 10) / 10
+          : 0,
+      goodReviews: val.good,
+      badReviews: val.bad,
+      totalReviews: val.ratings.length,
+    }))
+    .filter((p) => p.totalReviews > 0)
+    .sort((a, b) => b.totalReviews - a.totalReviews)
+    .slice(0, 8)
+}
+
+export function getGoodReviewEntries(productId?: string): BadReviewEntry[] {
+  return collectAllReviews()
+    .filter((review) => isGoodReview(review.rating))
+    .filter((review) => !productId || review.productId === productId)
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+    .map((review) => ({
+      id: review.id,
+      userId: review.userId,
+      customerName: review.customerName,
+      customerEmail: review.customerEmail,
+      productId: review.productId,
+      productName: review.productName,
+      rating: review.rating,
+      title: review.title,
+      comment: review.comment,
+      createdAt: review.createdAt,
+      orderId: review.orderId,
+    }))
 }
 
 export function getBadReviewEntries(productId?: string): BadReviewEntry[] {

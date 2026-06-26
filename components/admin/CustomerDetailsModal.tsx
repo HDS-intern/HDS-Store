@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Calendar, CreditCard, Mail, Phone, ShoppingBag, User, X } from 'lucide-react'
+import { AdminSlideUp } from '@/components/admin/AdminSlideUp'
 import { apiFetch } from '@/lib/api'
 import { formatPrice } from '@/lib/formatPrice'
 import styles from './CustomerDetailsModal.module.css'
@@ -90,118 +91,135 @@ export function CustomerDetailsModal({ userId, displayName, onClose }: CustomerD
   const title = displayName || profile?.name || userId
 
   return (
-    <div className={styles.backdrop} role="dialog" aria-modal="true" onClick={onClose}>
-      <div className={styles.popup} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.header}>
-          <div>
-            <h2 className={styles.title}>Customer Details</h2>
-            <p className={styles.subtitle}>{title}</p>
+    <div
+      className={`${styles.backdrop} ${styles.backdropEnter}`}
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div className={`${styles.popup} ${styles.popupEnter}`} onClick={(e) => e.stopPropagation()}>
+        <AdminSlideUp forceAnimate delayMs={0}>
+          <div className={styles.header}>
+            <div>
+              <h2 className={styles.title}>Customer Details</h2>
+              <p className={styles.subtitle}>{title}</p>
+            </div>
+            <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        </AdminSlideUp>
 
         {loading ? (
-          <p className={styles.loading}>Loading customer details...</p>
+          <AdminSlideUp forceAnimate delayMs={60}>
+            <p className={styles.loading}>Loading customer details...</p>
+          </AdminSlideUp>
         ) : error ? (
-          <p className={styles.error}>{error}</p>
+          <AdminSlideUp forceAnimate delayMs={60}>
+            <p className={styles.error}>{error}</p>
+          </AdminSlideUp>
         ) : details ? (
           <div className={styles.body}>
-            <section className={styles.section}>
-              <h3 className={styles.sectionTitle}>Profile</h3>
-              <div className={styles.profileGrid}>
-                <div className={styles.profileItem}>
-                  <User className="w-4 h-4" />
-                  <div>
-                    <span className={styles.label}>Full Name</span>
-                    <span className={styles.value}>{profile?.name}</span>
-                  </div>
-                </div>
-                <div className={styles.profileItem}>
-                  <Mail className="w-4 h-4" />
-                  <div>
-                    <span className={styles.label}>Email</span>
-                    <span className={styles.value}>{profile?.email}</span>
-                  </div>
-                </div>
-                <div className={styles.profileItem}>
-                  <Phone className="w-4 h-4" />
-                  <div>
-                    <span className={styles.label}>Phone</span>
-                    <span className={styles.value}>{profile?.phone || '—'}</span>
-                  </div>
-                </div>
-                <div className={styles.profileItem}>
-                  <User className="w-4 h-4" />
-                  <div>
-                    <span className={styles.label}>Username</span>
-                    <span className={styles.value}>{profile?.username}</span>
-                  </div>
-                </div>
-                <div className={styles.profileItem}>
-                  <Calendar className="w-4 h-4" />
-                  <div>
-                    <span className={styles.label}>Account Created</span>
-                    <span className={styles.value}>{formatDate(profile?.accountCreatedAt)}</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section className={styles.section}>
-              <h3 className={styles.sectionTitle}>Payment</h3>
-              <div className={styles.paymentRow}>
-                <CreditCard className="w-4 h-4" />
-                <div>
-                  <span className={styles.label}>Preferred / Latest Method</span>
-                  <span className={styles.value}>
-                    {formatPayment(details.preferredPaymentMethod)}
-                  </span>
-                </div>
-              </div>
-              {details.paymentMethods.length > 0 && (
-                <div className={styles.paymentTags}>
-                  {details.paymentMethods.map((method) => (
-                    <span key={method} className={styles.paymentTag}>
-                      {formatPayment(method)}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className={styles.statsRow}>
-                <span>{details.orderCount} orders</span>
-                <span>Total spent: {formatPrice(details.totalSpent)}</span>
-              </div>
-            </section>
-
-            <section className={styles.section}>
-              <h3 className={styles.sectionTitle}>
-                <ShoppingBag className="w-4 h-4 inline mr-1" />
-                Order History
-              </h3>
-              {details.orders.length === 0 ? (
-                <p className={styles.empty}>No orders found for this customer.</p>
-              ) : (
-                <div className={styles.orderList}>
-                  {details.orders.map((order) => (
-                    <div key={order.id} className={styles.orderRow}>
-                      <div>
-                        <p className={styles.orderId}>{order.id}</p>
-                        <p className={styles.orderMeta}>
-                          {formatDate(order.createdAt)} · {formatPayment(order.paymentMethod)}
-                        </p>
-                      </div>
-                      <div className={styles.orderRight}>
-                        <span className={styles.orderTotal}>{formatPrice(order.total)}</span>
-                        <span className={styles.orderStatus}>{order.status}</span>
-                        <span className={styles.orderPayment}>{order.paymentStatus}</span>
-                      </div>
+            <AdminSlideUp forceAnimate delayMs={60}>
+              <section className={styles.section}>
+                <h3 className={styles.sectionTitle}>Profile</h3>
+                <div className={styles.profileGrid}>
+                  <div className={styles.profileItem}>
+                    <User className="w-4 h-4" />
+                    <div>
+                      <span className={styles.label}>Full Name</span>
+                      <span className={styles.value}>{profile?.name}</span>
                     </div>
-                  ))}
+                  </div>
+                  <div className={styles.profileItem}>
+                    <Mail className="w-4 h-4" />
+                    <div>
+                      <span className={styles.label}>Email</span>
+                      <span className={styles.value}>{profile?.email}</span>
+                    </div>
+                  </div>
+                  <div className={styles.profileItem}>
+                    <Phone className="w-4 h-4" />
+                    <div>
+                      <span className={styles.label}>Phone</span>
+                      <span className={styles.value}>{profile?.phone || '—'}</span>
+                    </div>
+                  </div>
+                  <div className={styles.profileItem}>
+                    <User className="w-4 h-4" />
+                    <div>
+                      <span className={styles.label}>Username</span>
+                      <span className={styles.value}>{profile?.username}</span>
+                    </div>
+                  </div>
+                  <div className={styles.profileItem}>
+                    <Calendar className="w-4 h-4" />
+                    <div>
+                      <span className={styles.label}>Account Created</span>
+                      <span className={styles.value}>{formatDate(profile?.accountCreatedAt)}</span>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </section>
+              </section>
+            </AdminSlideUp>
+
+            <AdminSlideUp forceAnimate delayMs={120}>
+              <section className={styles.section}>
+                <h3 className={styles.sectionTitle}>Payment</h3>
+                <div className={styles.paymentRow}>
+                  <CreditCard className="w-4 h-4" />
+                  <div>
+                    <span className={styles.label}>Preferred / Latest Method</span>
+                    <span className={styles.value}>
+                      {formatPayment(details.preferredPaymentMethod)}
+                    </span>
+                  </div>
+                </div>
+                {details.paymentMethods.length > 0 && (
+                  <div className={styles.paymentTags}>
+                    {details.paymentMethods.map((method) => (
+                      <span key={method} className={styles.paymentTag}>
+                        {formatPayment(method)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className={styles.statsRow}>
+                  <span>{details.orderCount} orders</span>
+                  <span>Total spent: {formatPrice(details.totalSpent)}</span>
+                </div>
+              </section>
+            </AdminSlideUp>
+
+            <AdminSlideUp forceAnimate delayMs={180}>
+              <section className={styles.section}>
+                <h3 className={styles.sectionTitle}>
+                  <ShoppingBag className="w-4 h-4 inline mr-1" />
+                  Order History
+                </h3>
+                {details.orders.length === 0 ? (
+                  <p className={styles.empty}>No orders found for this customer.</p>
+                ) : (
+                  <div className={styles.orderList}>
+                    {details.orders.map((order) => (
+                      <div key={order.id} className={styles.orderRow}>
+                        <div>
+                          <p className={styles.orderId}>{order.id}</p>
+                          <p className={styles.orderMeta}>
+                            {formatDate(order.createdAt)} · {formatPayment(order.paymentMethod)}
+                          </p>
+                        </div>
+                        <div className={styles.orderRight}>
+                          <span className={styles.orderTotal}>{formatPrice(order.total)}</span>
+                          <span className={styles.orderStatus}>{order.status}</span>
+                          <span className={styles.orderPayment}>{order.paymentStatus}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </AdminSlideUp>
           </div>
         ) : null}
       </div>

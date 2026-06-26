@@ -166,6 +166,54 @@ export interface DashboardStats {
   presentToday: number
   salesChart: SalesChartMonth[]
   attendanceToday: StaffAttendance[]
+  totalCustomers: number
+  averageOrderValue: number
+  conversionRate: number
+  netProfit: number
+  revenueChangePct: number
+  ordersChangePct: number
+  customersChangePct: number
+  sparklineRevenue: number[]
+  topProducts: DashboardTopProductRow[]
+  categorySales: DashboardCategorySaleRow[]
+  paymentChannels: DashboardPaymentChannelRow[]
+  recentOrders: DashboardRecentOrderRow[]
+  customerTrend: DashboardCustomerTrendRow[]
+}
+
+export interface DashboardTopProductRow {
+  id: string
+  name: string
+  image: string
+  sold: number
+  revenue: number
+}
+
+export interface DashboardCategorySaleRow {
+  category: string
+  sales: number
+  orders: number
+  productCount: number
+}
+
+export interface DashboardPaymentChannelRow {
+  label: string
+  value: number
+  orders: number
+}
+
+export interface DashboardRecentOrderRow {
+  id: string
+  customer: string
+  amount: number
+  status: string
+  date: string
+}
+
+export interface DashboardCustomerTrendRow {
+  day: string
+  newCustomers: number
+  returning: number
 }
 
 export interface WarrantyClaim {
@@ -197,6 +245,16 @@ export interface ReturnRequest {
 export interface BadReviewChartMonth {
   key: string
   month: string
+  badReviews: number
+  goodReviews: number
+  totalReviews: number
+}
+
+export interface ProductReviewScore {
+  productId: string
+  productName: string
+  averageScore: number
+  goodReviews: number
   badReviews: number
   totalReviews: number
 }

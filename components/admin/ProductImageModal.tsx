@@ -36,7 +36,7 @@ export function ProductImageModal({
         </h2>
         {(modelId || manufacturingId) && (
           <p className={styles.meta}>
-            {modelId && <span>Model ID: {modelId}</span>}
+            {modelId && <span>SKU ID: {modelId}</span>}
             {modelId && manufacturingId && <span> · </span>}
             {manufacturingId && <span>MFG: {manufacturingId}</span>}
           </p>

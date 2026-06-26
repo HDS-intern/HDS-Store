@@ -4,6 +4,14 @@
   gap: 0.75rem;
 }
 
+.wrapCompact {
+  gap: 0.5rem;
+}
+
+.wrapCompact .chartBox {
+  max-height: 10rem;
+}
+
 .toolbar {
   display: flex;
   justify-content: space-between;
@@ -33,22 +41,22 @@
   padding: 0.4rem 0.7rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #cbd5e1;
-  background: #0f172a;
+  color: var(--muted-foreground);
+  background: var(--background);
   cursor: pointer;
   transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 
 .filterBtn:hover,
 .filterBtnActive {
-  color: #f8fafc;
+  color: var(--foreground);
   border-color: rgba(96, 165, 250, 0.45);
   background: rgba(37, 99, 235, 0.12);
 }
 
 .filterSummary {
   font-size: 0.6875rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   white-space: nowrap;
 }
 
@@ -74,7 +82,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #94a3b8;
+  color: var(--muted-foreground);
 }
 
 .filterTypeRow {
@@ -102,11 +110,11 @@
 
 .filterTypeBtn {
   background: rgba(15, 23, 42, 0.55);
-  color: #94a3b8;
+  color: var(--muted-foreground);
 }
 
 .filterTypeBtn:hover {
-  color: #e2e8f0;
+  color: var(--foreground);
   border-color: rgba(148, 163, 184, 0.15);
   transform: translateX(2px);
 }
@@ -114,7 +122,7 @@
 .filterTypeActive {
   background: rgba(37, 99, 235, 0.18);
   border-color: rgba(96, 165, 250, 0.35);
-  color: #f8fafc;
+  color: var(--foreground);
 }
 
 .filterFields {
@@ -129,7 +137,7 @@
   flex-direction: column;
   gap: 0.3rem;
   font-size: 0.6875rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
 }
 
 .filterField input[type='date'],
@@ -138,8 +146,8 @@
   padding: 0.45rem 0.55rem;
   border-radius: 0.625rem;
   border: 1px solid rgba(148, 163, 184, 0.28);
-  background: #0f172a;
-  color: #f8fafc;
+  background: var(--background);
+  color: var(--foreground);
   font-size: 0.75rem;
   transition:
     border-color 0.28s cubic-bezier(0.4, 0, 0.2, 1),
@@ -180,11 +188,11 @@
 
 .filterResetBtn {
   background: transparent;
-  color: #94a3b8;
+  color: var(--muted-foreground);
 }
 
 .filterResetBtn:hover {
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .filterApplyBtn {
@@ -205,7 +213,7 @@
   display: inline-flex;
   padding: 0.2rem;
   border-radius: 0.625rem;
-  background: #0f172a;
+  background: var(--background);
   border: 1px solid rgba(148, 163, 184, 0.15);
 }
 
@@ -222,16 +230,16 @@
 
 .toggleBtn {
   background: transparent;
-  color: #94a3b8;
+  color: var(--muted-foreground);
 }
 
 .toggleBtn:hover {
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .toggleActive {
   background: #2563eb;
-  color: #f8fafc;
+  color: var(--foreground);
 }
 
 .legend {
@@ -245,7 +253,7 @@
   align-items: center;
   gap: 0.375rem;
   font-size: 0.75rem;
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 9999px;
@@ -260,13 +268,13 @@
 
 .legendItem:hover {
   background: rgba(148, 163, 184, 0.08);
-  color: #f1f5f9;
+  color: var(--foreground);
 }
 
 .legendItemActive {
   background: rgba(37, 99, 235, 0.15);
   border-color: rgba(96, 165, 250, 0.35);
-  color: #f8fafc;
+  color: var(--foreground);
 }
 
 .legendDot {
@@ -312,7 +320,7 @@
 .tooltipTitle {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--foreground);
   margin-bottom: 0.5rem;
 }
 
@@ -337,11 +345,11 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
 }
 
 .tooltipAmount {
-  color: #e2e8f0;
+  color: var(--foreground);
   font-weight: 600;
   white-space: nowrap;
 }

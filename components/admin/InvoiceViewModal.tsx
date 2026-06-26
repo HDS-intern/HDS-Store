@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Download, X } from 'lucide-react'
+import { AdminSlideUp } from '@/components/admin/AdminSlideUp'
 import { apiFetch, getStoredToken } from '@/lib/api'
 import { formatPrice } from '@/lib/formatPrice'
 import type { InvoiceDetail } from '@/lib/invoices'
@@ -107,121 +108,141 @@ export function InvoiceViewModal({ invoiceId, onClose }: InvoiceViewModalProps) 
 
   return (
     <div
-      className={styles.backdrop}
+      className={`${styles.backdrop} ${styles.backdropEnter}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="invoice-view-title"
       onClick={onClose}
     >
-      <div className={styles.popup} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.header}>
-          <div>
-            <h2 id="invoice-view-title" className={styles.title}>
-              Invoice
-            </h2>
-            <p className={styles.subtitle}>{invoiceId}</p>
+      <div className={`${styles.popup} ${styles.popupEnter}`} onClick={(e) => e.stopPropagation()}>
+        <AdminSlideUp forceAnimate delayMs={0}>
+          <div className={styles.header}>
+            <div>
+              <h2 id="invoice-view-title" className={styles.title}>
+                Invoice
+              </h2>
+              <p className={styles.subtitle}>{invoiceId}</p>
+            </div>
+            <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        </AdminSlideUp>
 
-        {loading && <p className={styles.loading}>Loading invoice...</p>}
-        {error && !loading && <p className={styles.error}>{error}</p>}
+        {loading && (
+          <AdminSlideUp forceAnimate delayMs={60}>
+            <p className={styles.loading}>Loading invoice...</p>
+          </AdminSlideUp>
+        )}
+        {error && !loading && (
+          <AdminSlideUp forceAnimate delayMs={60}>
+            <p className={styles.error}>{error}</p>
+          </AdminSlideUp>
+        )}
 
         {!loading && invoice && (
           <>
             <div className={styles.body}>
-              <div className={styles.metaGrid}>
-                <div>
-                  <span className={styles.label}>Order ID</span>
-                  <span className={styles.value}>{invoice.orderId}</span>
+              <AdminSlideUp forceAnimate delayMs={60}>
+                <div className={styles.metaGrid}>
+                  <div>
+                    <span className={styles.label}>Order ID</span>
+                    <span className={styles.value}>{invoice.orderId}</span>
+                  </div>
+                  <div>
+                    <span className={styles.label}>Generated</span>
+                    <span className={styles.value}>{formatInvoiceDate(invoice.createdAt)}</span>
+                  </div>
+                  <div>
+                    <span className={styles.label}>Customer</span>
+                    <span className={styles.value}>{invoice.customerName || invoice.userId}</span>
+                  </div>
+                  <div>
+                    <span className={styles.label}>Payment</span>
+                    <span className={`${styles.badge} ${paymentBadgeClass(invoice.paymentStatus)}`}>
+                      {invoice.paymentStatus}
+                    </span>
+                  </div>
+                  <div>
+                    <span className={styles.label}>Method</span>
+                    <span className={styles.value}>{formatPaymentMethod(invoice.paymentMethod)}</span>
+                  </div>
+                  <div>
+                    <span className={styles.label}>Order Status</span>
+                    <span className={styles.value}>{invoice.orderStatus || '—'}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className={styles.label}>Generated</span>
-                  <span className={styles.value}>{formatInvoiceDate(invoice.createdAt)}</span>
-                </div>
-                <div>
-                  <span className={styles.label}>Customer</span>
-                  <span className={styles.value}>{invoice.customerName || invoice.userId}</span>
-                </div>
-                <div>
-                  <span className={styles.label}>Payment</span>
-                  <span className={`${styles.badge} ${paymentBadgeClass(invoice.paymentStatus)}`}>
-                    {invoice.paymentStatus}
-                  </span>
-                </div>
-                <div>
-                  <span className={styles.label}>Method</span>
-                  <span className={styles.value}>{formatPaymentMethod(invoice.paymentMethod)}</span>
-                </div>
-                <div>
-                  <span className={styles.label}>Order Status</span>
-                  <span className={styles.value}>{invoice.orderStatus || '—'}</span>
-                </div>
-              </div>
+              </AdminSlideUp>
 
               {(invoice.customerEmail || invoice.customerPhone || invoice.shippingAddress) && (
-                <div className={styles.section}>
-                  <p className={styles.sectionTitle}>Customer Details</p>
-                  {invoice.customerEmail && (
-                    <p className={styles.detailLine}>Email: {invoice.customerEmail}</p>
-                  )}
-                  {invoice.customerPhone && (
-                    <p className={styles.detailLine}>Phone: {invoice.customerPhone}</p>
-                  )}
-                  {invoice.shippingAddress && (
-                    <p className={styles.detailLine}>Address: {invoice.shippingAddress}</p>
-                  )}
-                </div>
+                <AdminSlideUp forceAnimate delayMs={120}>
+                  <div className={styles.section}>
+                    <p className={styles.sectionTitle}>Customer Details</p>
+                    {invoice.customerEmail && (
+                      <p className={styles.detailLine}>Email: {invoice.customerEmail}</p>
+                    )}
+                    {invoice.customerPhone && (
+                      <p className={styles.detailLine}>Phone: {invoice.customerPhone}</p>
+                    )}
+                    {invoice.shippingAddress && (
+                      <p className={styles.detailLine}>Address: {invoice.shippingAddress}</p>
+                    )}
+                  </div>
+                </AdminSlideUp>
               )}
 
-              <div className={styles.section}>
-                <p className={styles.sectionTitle}>Line Items</p>
-                <div className={styles.itemsTableWrap}>
-                  <table className={styles.itemsTable}>
-                    <thead>
-                      <tr>
-                        <th>Product</th>
-                        <th>Qty</th>
-                        <th>Unit Price</th>
-                        <th>Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invoice.items.map((item) => (
-                        <tr key={item.productId}>
-                          <td>{item.productName}</td>
-                          <td>{item.quantity}</td>
-                          <td>{formatPrice(item.unitPrice)}</td>
-                          <td>{formatPrice(item.lineTotal)}</td>
+              <AdminSlideUp forceAnimate delayMs={180}>
+                <div className={styles.section}>
+                  <p className={styles.sectionTitle}>Line Items</p>
+                  <div className={styles.itemsTableWrap}>
+                    <table className={styles.itemsTable}>
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Qty</th>
+                          <th>Unit Price</th>
+                          <th>Total</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {invoice.items.map((item) => (
+                          <tr key={item.productId}>
+                            <td>{item.productName}</td>
+                            <td>{item.quantity}</td>
+                            <td>{formatPrice(item.unitPrice)}</td>
+                            <td>{formatPrice(item.lineTotal)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
+              </AdminSlideUp>
 
-              <div className={styles.totalRow}>
-                <span>Invoice Total</span>
-                <strong>{formatPrice(invoice.total)}</strong>
-              </div>
+              <AdminSlideUp forceAnimate delayMs={240}>
+                <div className={styles.totalRow}>
+                  <span>Invoice Total</span>
+                  <strong>{formatPrice(invoice.total)}</strong>
+                </div>
+              </AdminSlideUp>
             </div>
 
-            <div className={styles.actions}>
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={handleDownload}
-                disabled={downloading}
-              >
-                <Download className="w-4 h-4" />
-                {downloading ? 'Preparing...' : 'Download (.xlsx)'}
-              </button>
-              <button type="button" className={styles.btnPrimary} onClick={onClose}>
-                Close
-              </button>
-            </div>
+            <AdminSlideUp forceAnimate delayMs={300}>
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={handleDownload}
+                  disabled={downloading}
+                >
+                  <Download className="w-4 h-4" />
+                  {downloading ? 'Preparing...' : 'Download (.xlsx)'}
+                </button>
+                <button type="button" className={styles.btnPrimary} onClick={onClose}>
+                  Close
+                </button>
+              </div>
+            </AdminSlideUp>
           </>
         )}
       </div>

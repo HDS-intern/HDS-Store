@@ -1,27 +1,28 @@
 'use client'
 
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
-import { List, RefreshCw } from 'lucide-react'
+import { ChevronDown, RefreshCw } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import type {
   BadReviewChartMonth,
   BadReviewEntry,
-  BadReviewProductSummary,
+  ProductReviewScore,
 } from '@/lib/types'
 import { CustomerDetailsModal } from './CustomerDetailsModal'
 import styles from './BadReviewAnalysesPanel.module.css'
 
-type FilterMode = 'overall' | 'product'
+type ReviewFilter = 'overall' | 'good' | 'bad'
 
 type ReviewAnalysesData = {
   chart: BadReviewChartMonth[]
-  products: BadReviewProductSummary[]
+  productScores: ProductReviewScore[]
   entries: BadReviewEntry[]
+  goodEntries: BadReviewEntry[]
 }
 
-const CHART_WIDTH = 560
-const CHART_HEIGHT = 220
-const PAD = { top: 20, right: 24, bottom: 44, left: 44 }
+const CHART_WIDTH = 480
+const CHART_HEIGHT = 160
+const PAD = { top: 14, right: 16, bottom: 40, left: 36 }
 
 type Point = { x: number; y: number; value: number; index: number }
 
@@ -29,534 +30,434 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
-function valueToY(value: number, maxValue: number, innerH: number): number {
+function valueToY(value: number, maxValue: number, innerH: number, padTop: number): number {
   const safe = clamp(value, 0, maxValue)
-  return PAD.top + innerH - (safe / maxValue) * innerH
+  return padTop + innerH - (safe / maxValue) * innerH
 }
 
-function monotoneLinePath(points: Point[], maxValue: number, innerH: number): string {
+function monotoneLinePath(points: Point[], maxValue: number, innerH: number, padTop: number): string {
   const count = points.length
   if (count === 0) return ''
   if (count === 1) {
-    const y = valueToY(points[0].value, maxValue, innerH)
+    const y = valueToY(points[0].value, maxValue, innerH, padTop)
     return `M ${points[0].x} ${y}`
   }
-
-  const xs = points.map((point) => point.x)
-  const values = points.map((point) => point.value)
-  const minY = PAD.top
-  const maxY = PAD.top + innerH
-  const dxs: number[] = []
-  const slopes: number[] = []
-
-  for (let index = 0; index < count - 1; index += 1) {
-    const dx = xs[index + 1] - xs[index]
-    dxs.push(dx)
-    slopes.push(dx === 0 ? 0 : (values[index + 1] - values[index]) / dx)
-  }
-
-  const tangents = new Array<number>(count)
-  tangents[0] = slopes[0]
-  tangents[count - 1] = slopes[count - 2]
-
-  for (let index = 1; index < count - 1; index += 1) {
-    if (slopes[index - 1] * slopes[index] <= 0) tangents[index] = 0
-    else tangents[index] = (slopes[index - 1] + slopes[index]) / 2
-  }
-
-  for (let index = 0; index < count - 1; index += 1) {
-    if (Math.abs(slopes[index]) < 1e-12) {
-      tangents[index] = 0
-      tangents[index + 1] = 0
-    } else {
-      const alpha = tangents[index] / slopes[index]
-      const beta = tangents[index + 1] / slopes[index]
-      const magnitude = alpha * alpha + beta * beta
-      if (magnitude > 9) {
-        const scale = 3 / Math.sqrt(magnitude)
-        tangents[index] = scale * alpha * slopes[index]
-        tangents[index + 1] = scale * beta * slopes[index]
-      }
-    }
-  }
-
-  const startY = valueToY(values[0], maxValue, innerH)
+  const xs = points.map((p) => p.x)
+  const values = points.map((p) => p.value)
+  const startY = valueToY(values[0], maxValue, innerH, padTop)
   let path = `M ${xs[0]} ${startY}`
-
-  for (let index = 0; index < count - 1; index += 1) {
-    const cp1x = xs[index] + dxs[index] / 3
-    const cp2x = xs[index + 1] - dxs[index] / 3
-    const low = Math.min(values[index], values[index + 1])
-    const high = Math.max(values[index], values[index + 1])
-    const v1 = clamp(values[index] + (tangents[index] * dxs[index]) / 3, low, high)
-    const v2 = clamp(values[index + 1] - (tangents[index + 1] * dxs[index]) / 3, low, high)
-    const cp1y = clamp(valueToY(v1, maxValue, innerH), minY, maxY)
-    const cp2y = clamp(valueToY(v2, maxValue, innerH), minY, maxY)
-    const endY = valueToY(values[index + 1], maxValue, innerH)
-    path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${xs[index + 1]} ${endY}`
+  for (let i = 0; i < count - 1; i += 1) {
+    const midX = (xs[i] + xs[i + 1]) / 2
+    const y1 = valueToY(values[i], maxValue, innerH, padTop)
+    const y2 = valueToY(values[i + 1], maxValue, innerH, padTop)
+    path += ` C ${midX} ${y1}, ${midX} ${y2}, ${xs[i + 1]} ${y2}`
   }
-
   return path
 }
 
-function monotoneAreaPath(points: Point[], maxValue: number, innerH: number, baseY: number): string {
+function monotoneAreaPath(
+  points: Point[],
+  maxValue: number,
+  innerH: number,
+  baseY: number,
+  padTop: number
+): string {
   if (points.length === 0) return ''
-  const line = monotoneLinePath(points, maxValue, innerH)
+  const line = monotoneLinePath(points, maxValue, innerH, padTop)
   const last = points[points.length - 1]
   const first = points[0]
   return `${line} L ${last.x} ${baseY} L ${first.x} ${baseY} Z`
 }
 
-function formatContactName(name: string) {
-  return name.replace(/\s+customer$/i, '').trim() || name
+function truncateLabel(name: string, max = 10): string {
+  return name.length > max ? `${name.slice(0, max)}…` : name
 }
 
-function formatReviewDate(value: string) {
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return value
-  return parsed.toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function ratingStars(rating: number) {
-  return '★'.repeat(rating) + '☆'.repeat(Math.max(0, 5 - rating))
-}
-
-export function BadReviewAnalysesPanel({ refreshKey = 0 }: { refreshKey?: number }) {
+export function BadReviewAnalysesPanel({
+  refreshKey = 0,
+  embedded = false,
+  onProductClick,
+  onMonthClick,
+}: {
+  refreshKey?: number
+  embedded?: boolean
+  onProductClick?: (product: ProductReviewScore) => void
+  onMonthClick?: (month: BadReviewChartMonth, mode: ReviewFilter) => void
+}) {
   const chartId = useId().replace(/:/g, '')
-  const [filterMode, setFilterMode] = useState<FilterMode>('overall')
-  const [selectedProductId, setSelectedProductId] = useState('')
-  const [showTable, setShowTable] = useState(false)
+  const [filter, setFilter] = useState<ReviewFilter>('overall')
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [data, setData] = useState<ReviewAnalysesData | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const [activeBar, setActiveBar] = useState<number | null>(null)
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const [profileDisplayName, setProfileDisplayName] = useState<string | undefined>()
 
-  const productId = filterMode === 'product' && selectedProductId ? selectedProductId : undefined
-
-  const loadData = useCallback(
-    async (showLoader = false) => {
-      if (showLoader) setLoading(true)
-      try {
-        const query = productId ? `?productId=${encodeURIComponent(productId)}` : ''
-        const response = await apiFetch<ReviewAnalysesData>(`/api/admin/review-analyses${query}`)
-        setData(response)
-      } catch {
-        setData({ chart: [], products: [], entries: [] })
-      } finally {
-        if (showLoader) setLoading(false)
-      }
-    },
-    [productId]
-  )
+  const loadData = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true)
+    try {
+      const response = await apiFetch<ReviewAnalysesData>('/api/admin/review-analyses')
+      setData(response)
+    } catch {
+      setData({ chart: [], productScores: [], entries: [], goodEntries: [] })
+    } finally {
+      if (showLoader) setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     void loadData(true)
   }, [loadData, refreshKey])
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      void loadData(false)
-    }, 10000)
-
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        void loadData(false)
-      }
-    }
-
-    document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('focus', onVisible)
-
-    return () => {
-      window.clearInterval(interval)
-      document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('focus', onVisible)
-    }
+    const interval = window.setInterval(() => void loadData(false), 10000)
+    return () => window.clearInterval(interval)
   }, [loadData])
 
   useEffect(() => {
-    if (filterMode !== 'product') {
-      setShowTable(false)
-    }
-  }, [filterMode])
-
-  useEffect(() => {
-    if (!selectedProductId && data?.products.length) {
-      setSelectedProductId(data.products[0].productId)
-    }
-  }, [data?.products, selectedProductId])
+    if (!dropdownOpen) return
+    const close = () => setDropdownOpen(false)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [dropdownOpen])
 
   const chart = data?.chart ?? []
-  const entries = data?.entries ?? []
-  const products = data?.products ?? []
+  const productScores = data?.productScores ?? []
 
-  const plot = useMemo(() => {
+  const filterLabel =
+    filter === 'overall' ? 'Overall' : filter === 'good' ? 'Good Review' : 'Bad Review'
+
+  const timeSeriesKey = filter === 'good' ? 'goodReviews' : 'badReviews'
+  const timeSeriesColor = filter === 'good' ? '#4ade80' : '#f87171'
+  const timeSeriesLabel = filter === 'good' ? 'Good reviews (4–5 stars)' : 'Bad reviews (1–2 stars)'
+
+  const timePlot = useMemo(() => {
     const innerW = CHART_WIDTH - PAD.left - PAD.right
     const innerH = CHART_HEIGHT - PAD.top - PAD.bottom
     const baseY = PAD.top + innerH
-    const values = chart.flatMap((row) => [row.badReviews, row.totalReviews])
+    const values = chart.map((row) => row[timeSeriesKey])
     const maxValue = Math.max(...values, 1)
-    const yTicks = [0, 0.25, 0.5, 0.75, 1].map((tick) => ({
-      value: maxValue * tick,
-      y: PAD.top + innerH - tick * innerH,
-    }))
     const xStep = chart.length > 1 ? innerW / (chart.length - 1) : 0
-    const xPositions = chart.map((_, index) =>
-      PAD.left + (chart.length > 1 ? index * xStep : innerW / 2)
-    )
-
-    const buildSeries = (key: 'badReviews' | 'totalReviews', color: string) => {
-      const coords: Point[] = chart.map((row, index) => {
-        const value = row[key]
-        const x = xPositions[index]
-        const y = valueToY(value, maxValue, innerH)
-        return { x, y, value, index }
-      })
-      return {
-        key,
-        color,
-        coords,
-        linePath: monotoneLinePath(coords, maxValue, innerH),
-        areaPath: monotoneAreaPath(coords, maxValue, innerH, baseY),
-      }
-    }
-
+    const xPositions = chart.map((_, i) => PAD.left + (chart.length > 1 ? i * xStep : innerW / 2))
+    const coords: Point[] = chart.map((row, index) => ({
+      x: xPositions[index],
+      y: valueToY(row[timeSeriesKey], maxValue, innerH, PAD.top),
+      value: row[timeSeriesKey],
+      index,
+    }))
     return {
       innerW,
       innerH,
       maxValue,
-      yTicks,
       xPositions,
       baseY,
-      badSeries: buildSeries('badReviews', '#f87171'),
-      totalSeries: buildSeries('totalReviews', '#64748b'),
+      coords,
+      linePath: monotoneLinePath(coords, maxValue, innerH, PAD.top),
+      areaPath: monotoneAreaPath(coords, maxValue, innerH, baseY, PAD.top),
     }
-  }, [chart])
+  }, [chart, timeSeriesKey])
 
-  const activeMonth = activeIndex !== null ? chart[activeIndex] : null
-  const crosshairX = activeIndex !== null ? plot.xPositions[activeIndex] : null
-
-  const pickIndexFromX = (clientX: number, svg: SVGSVGElement) => {
-    const rect = svg.getBoundingClientRect()
-    if (rect.width === 0) return null
-    const scaleX = CHART_WIDTH / rect.width
-    const x = (clientX - rect.left) * scaleX
-    let nearest = 0
-    let minDistance = Infinity
-    plot.xPositions.forEach((position, index) => {
-      const distance = Math.abs(x - position)
-      if (distance < minDistance) {
-        minDistance = distance
-        nearest = index
+  const barPlot = useMemo(() => {
+    const items = productScores.slice(0, 6)
+    const innerW = CHART_WIDTH - PAD.left - PAD.right
+    const innerH = CHART_HEIGHT - PAD.top - PAD.bottom
+    const maxValue = Math.max(...items.flatMap((p) => [p.goodReviews, p.badReviews]), 1)
+    const groupW = items.length > 0 ? innerW / items.length : innerW
+    const barW = Math.min(14, groupW * 0.22)
+    const groups = items.map((product, index) => {
+      const cx = PAD.left + groupW * index + groupW / 2
+      const goodH = (product.goodReviews / maxValue) * innerH
+      const badH = (product.badReviews / maxValue) * innerH
+      const baseY = PAD.top + innerH
+      return {
+        product,
+        cx,
+        good: {
+          x: cx - barW - 2,
+          y: baseY - goodH,
+          h: goodH,
+          value: product.goodReviews,
+        },
+        bad: {
+          x: cx + 2,
+          y: baseY - badH,
+          h: badH,
+          value: product.badReviews,
+        },
       }
     })
-    return nearest
-  }
+    return { items, maxValue, innerH, groups, baseY: PAD.top + innerH }
+  }, [productScores])
 
-  const openProfile = (userId: string | null, displayName: string) => {
-    if (!userId) return
-    setProfileUserId(userId)
-    setProfileDisplayName(displayName)
-  }
+  const activeMonth = activeIndex !== null ? chart[activeIndex] : null
 
   return (
     <>
-      <div className={`${styles.panel} ${styles.reviewPanel}`}>
+      <div className={embedded ? styles.embedded : styles.panel}>
         <div className={styles.panelHeader}>
-          <p className={styles.panelTitle}>Bad Review Analyses</p>
-          <button
-            type="button"
-            className={styles.refreshBtn}
-            onClick={() => void loadData(true)}
-            aria-label="Refresh review analyses"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? styles.spinning : ''}`} />
-          </button>
-        </div>
-
-        <div className={styles.toolbar}>
-          <div className={styles.toggle} role="tablist" aria-label="Review analysis filter">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={filterMode === 'overall'}
-              className={filterMode === 'overall' ? styles.toggleActive : styles.toggleBtn}
-              onClick={() => setFilterMode('overall')}
-            >
-              Overall reviews
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={filterMode === 'product'}
-              className={filterMode === 'product' ? styles.toggleActive : styles.toggleBtn}
-              onClick={() => setFilterMode('product')}
-            >
-              Particular product
-            </button>
-          </div>
-
-          {filterMode === 'product' && (
-            <div className={styles.productControls}>
-              <select
-                className="hds-select-dark hds-select-inline"
-                value={selectedProductId}
-                onChange={(event) => {
-                  setSelectedProductId(event.target.value)
-                  setShowTable(false)
-                }}
-              >
-                {products.length === 0 ? (
-                  <option value="">No products with bad reviews</option>
-                ) : (
-                  products.map((product) => (
-                    <option key={product.productId} value={product.productId}>
-                      {product.productName} ({product.badReviewCount} bad)
-                    </option>
-                  ))
-                )}
-              </select>
+          <p className={styles.panelTitle}>Review Analysis</p>
+          <div className={styles.headerActions}>
+            <div className={styles.dropdownWrap}>
               <button
                 type="button"
-                className={styles.tableToggleBtn}
-                onClick={() => setShowTable((open) => !open)}
-                disabled={!selectedProductId}
+                className={styles.dropdownBtn}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setDropdownOpen((o) => !o)
+                }}
+                aria-expanded={dropdownOpen}
               >
-                <List className="w-4 h-4" />
-                {showTable ? 'Hide accounts table' : 'View accounts table'}
+                {filterLabel}
+                <ChevronDown className={`w-4 h-4 ${dropdownOpen ? styles.chevronOpen : ''}`} />
               </button>
+              {dropdownOpen && (
+                <div className={styles.dropdownMenu} onClick={(e) => e.stopPropagation()}>
+                  {(
+                    [
+                      ['overall', 'Overall'],
+                      ['good', 'Good Review'],
+                      ['bad', 'Bad Review'],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={filter === id ? styles.dropdownActive : styles.dropdownItem}
+                      onClick={() => {
+                        setFilter(id)
+                        setDropdownOpen(false)
+                        setActiveIndex(null)
+                        setActiveBar(null)
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+            <button
+              type="button"
+              className={styles.refreshBtn}
+              onClick={() => void loadData(true)}
+              aria-label="Refresh review analysis"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? styles.spinning : ''}`} />
+            </button>
+          </div>
         </div>
 
-        <div className={styles.legend}>
-          <span className={styles.legendItem}>
-            <span className={styles.legendDot} style={{ background: '#f87171' }} />
-            Bad reviews (1–2 stars)
-          </span>
-          <span className={styles.legendItem}>
-            <span className={styles.legendDot} style={{ background: '#64748b' }} />
-            Total reviews
-          </span>
-        </div>
+        {filter !== 'overall' && (
+          <div className={styles.legend}>
+            <span className={styles.legendItem}>
+              <span className={styles.legendDot} style={{ background: timeSeriesColor }} />
+              {timeSeriesLabel}
+            </span>
+          </div>
+        )}
+
+        {filter === 'overall' && (
+          <div className={styles.legend}>
+            <span className={styles.legendItem}>
+              <span className={styles.legendDot} style={{ background: '#4ade80' }} />
+              Good reviews
+            </span>
+            <span className={styles.legendItem}>
+              <span className={styles.legendDot} style={{ background: '#f87171' }} />
+              Bad reviews
+            </span>
+          </div>
+        )}
 
         <div className={`${styles.chartBox} ${loading ? styles.chartLoading : ''}`}>
-          {activeMonth && activeIndex !== null && (
+          {filter !== 'overall' && activeMonth && activeIndex !== null && (
             <div className={styles.floatingTooltip} role="status">
               <p className={styles.tooltipTitle}>{activeMonth.month}</p>
               <p className={styles.tooltipRow}>
-                <span>Bad reviews</span>
-                <strong>{activeMonth.badReviews}</strong>
-              </p>
-              <p className={styles.tooltipRow}>
-                <span>Total reviews</span>
-                <strong>{activeMonth.totalReviews}</strong>
+                <span>{filter === 'good' ? 'Good reviews' : 'Bad reviews'}</span>
+                <strong>{activeMonth[timeSeriesKey]}</strong>
               </p>
             </div>
           )}
 
-          {chart.length === 0 ? (
+          {filter === 'overall' && activeBar !== null && barPlot.groups[activeBar] && (
+            <div className={styles.floatingTooltip} role="status">
+              <p className={styles.tooltipTitle}>{barPlot.groups[activeBar].product.productName}</p>
+              <p className={styles.tooltipRow}>
+                <span>Score</span>
+                <strong>{barPlot.groups[activeBar].product.averageScore}/5</strong>
+              </p>
+              <p className={styles.tooltipRow}>
+                <span>Good / Bad</span>
+                <strong>
+                  {barPlot.groups[activeBar].product.goodReviews} /{' '}
+                  {barPlot.groups[activeBar].product.badReviews}
+                </strong>
+              </p>
+            </div>
+          )}
+
+          {filter !== 'overall' && chart.length === 0 ? (
             <p className={styles.emptyText}>No review data available yet</p>
+          ) : filter === 'overall' && productScores.length === 0 ? (
+            <p className={styles.emptyText}>No review data available yet</p>
+          ) : filter === 'overall' ? (
+            <svg
+              viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+              className={styles.svg}
+              role="img"
+              aria-label="Product review analysis chart"
+            >
+              {[0, 0.25, 0.5, 0.75, 1].map((t) => {
+                const y = PAD.top + barPlot.innerH - t * barPlot.innerH
+                const val = Math.round(barPlot.maxValue * t)
+                return (
+                  <g key={t}>
+                    <line
+                      x1={PAD.left}
+                      y1={y}
+                      x2={CHART_WIDTH - PAD.right}
+                      y2={y}
+                      className={styles.gridLine}
+                    />
+                    <text x={PAD.left - 6} y={y + 3} className={styles.axisLabel} textAnchor="end">
+                      {val}
+                    </text>
+                  </g>
+                )
+              })}
+              <line
+                x1={PAD.left}
+                y1={barPlot.baseY}
+                x2={CHART_WIDTH - PAD.right}
+                y2={barPlot.baseY}
+                className={styles.axisLine}
+              />
+              {barPlot.groups.map((group, index) => (
+                <g
+                  key={group.product.productId}
+                  onMouseEnter={() => setActiveBar(index)}
+                  onMouseLeave={() => setActiveBar(null)}
+                  onClick={() => onProductClick?.(group.product)}
+                  style={{ cursor: onProductClick ? 'pointer' : undefined }}
+                >
+                  <rect
+                    x={group.good.x}
+                    y={group.good.y}
+                    width={14}
+                    height={Math.max(group.good.h, 2)}
+                    rx={2}
+                    fill="#4ade80"
+                    className={styles.barRect}
+                  />
+                  <rect
+                    x={group.bad.x}
+                    y={group.bad.y}
+                    width={14}
+                    height={Math.max(group.bad.h, 2)}
+                    rx={2}
+                    fill="#f87171"
+                    className={styles.barRect}
+                  />
+                  <text
+                    x={group.cx}
+                    y={CHART_HEIGHT - 22}
+                    className={styles.productLabel}
+                    textAnchor="middle"
+                  >
+                    {truncateLabel(group.product.productName)}
+                  </text>
+                  <text
+                    x={group.cx}
+                    y={CHART_HEIGHT - 8}
+                    className={styles.scoreLabel}
+                    textAnchor="middle"
+                  >
+                    ★ {group.product.averageScore}
+                  </text>
+                </g>
+              ))}
+            </svg>
           ) : (
             <svg
               viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
               className={styles.svg}
               role="img"
-              aria-label="Bad review analyses chart"
-              onPointerMove={(event) => {
-                const index = pickIndexFromX(event.clientX, event.currentTarget)
-                if (index !== null) setActiveIndex(index)
+              aria-label="Review trend chart"
+              onPointerMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect()
+                const x = ((e.clientX - rect.left) / rect.width) * CHART_WIDTH
+                let nearest = 0
+                let minDist = Infinity
+                timePlot.xPositions.forEach((px, i) => {
+                  const d = Math.abs(x - px)
+                  if (d < minDist) {
+                    minDist = d
+                    nearest = i
+                  }
+                })
+                setActiveIndex(nearest)
               }}
               onPointerLeave={() => setActiveIndex(null)}
+              onClick={() => {
+                if (activeIndex !== null && chart[activeIndex]) {
+                  onMonthClick?.(chart[activeIndex], filter)
+                }
+              }}
+              style={{ cursor: onMonthClick ? 'pointer' : undefined }}
             >
               <defs>
-                <clipPath id={`review-plot-clip-${chartId}`}>
-                  <rect x={PAD.left} y={PAD.top} width={plot.innerW} height={plot.innerH} />
-                </clipPath>
-                <linearGradient id={`review-area-total-${chartId}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#64748b" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="#64748b" stopOpacity="0.02" />
-                </linearGradient>
-                <linearGradient id={`review-area-bad-${chartId}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f87171" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#f87171" stopOpacity="0.02" />
+                <linearGradient id={`review-area-${chartId}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={timeSeriesColor} stopOpacity="0.35" />
+                  <stop offset="100%" stopColor={timeSeriesColor} stopOpacity="0.02" />
                 </linearGradient>
               </defs>
-
-              {plot.yTicks.map((tick) => (
-                <g key={tick.value}>
+              {[0, 0.25, 0.5, 0.75, 1].map((t) => {
+                const y = PAD.top + timePlot.innerH - t * timePlot.innerH
+                return (
                   <line
+                    key={t}
                     x1={PAD.left}
-                    y1={tick.y}
+                    y1={y}
                     x2={CHART_WIDTH - PAD.right}
-                    y2={tick.y}
+                    y2={y}
                     className={styles.gridLine}
                   />
-                  <text x={PAD.left - 8} y={tick.y + 4} className={styles.axisLabel} textAnchor="end">
-                    {Math.round(tick.value)}
-                  </text>
-                </g>
-              ))}
-
-              <line
-                x1={PAD.left}
-                y1={CHART_HEIGHT - PAD.bottom}
-                x2={CHART_WIDTH - PAD.right}
-                y2={CHART_HEIGHT - PAD.bottom}
-                className={styles.axisLine}
+                )
+              })}
+              <path d={timePlot.areaPath} fill={`url(#review-area-${chartId})`} />
+              <path
+                d={timePlot.linePath}
+                fill="none"
+                stroke={timeSeriesColor}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                className={styles.line}
               />
-              <line
-                x1={PAD.left}
-                y1={PAD.top}
-                x2={PAD.left}
-                y2={CHART_HEIGHT - PAD.bottom}
-                className={styles.axisLine}
-              />
-
               {chart.map((row, index) => {
-                const x = plot.xPositions[index]
+                const x = timePlot.xPositions[index]
                 const [monthName, year] = row.month.split(' ')
-                const isActive = activeIndex === index
                 return (
                   <text
                     key={row.key}
                     x={x}
-                    y={CHART_HEIGHT - 18}
-                    className={`${styles.monthLabel} ${isActive ? styles.monthLabelActive : ''}`}
+                    y={CHART_HEIGHT - 14}
+                    className={`${styles.monthLabel} ${activeIndex === index ? styles.monthLabelActive : ''}`}
                     textAnchor="middle"
                   >
                     <tspan x={x} dy="0">
                       {monthName}
                     </tspan>
-                    <tspan x={x} dy="11">
+                    <tspan x={x} dy="10">
                       {year}
                     </tspan>
                   </text>
                 )
               })}
-
-              <g clipPath={`url(#review-plot-clip-${chartId})`}>
-                <path d={plot.totalSeries.areaPath} fill={`url(#review-area-total-${chartId})`} />
-                <path
-                  d={plot.totalSeries.linePath}
-                  fill="none"
-                  stroke={plot.totalSeries.color}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  className={styles.line}
-                />
-                <path d={plot.badSeries.areaPath} fill={`url(#review-area-bad-${chartId})`} />
-                <path
-                  d={plot.badSeries.linePath}
-                  fill="none"
-                  stroke={plot.badSeries.color}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  className={styles.line}
-                />
-              </g>
-
-              {crosshairX !== null && activeIndex !== null && (
-                <g className={styles.crosshair} pointerEvents="none">
-                  <line
-                    x1={crosshairX}
-                    y1={PAD.top}
-                    x2={crosshairX}
-                    y2={plot.baseY}
-                    className={styles.crosshairLine}
-                  />
-                  {[plot.badSeries, plot.totalSeries].map((series) => {
-                    const point = series.coords[activeIndex]
-                    return (
-                      <circle
-                        key={series.key}
-                        cx={point.x}
-                        cy={point.y}
-                        r="4.5"
-                        fill={series.color}
-                        stroke="#0f172a"
-                        strokeWidth="2"
-                      />
-                    )
-                  })}
-                </g>
-              )}
-
-              <rect
-                x={PAD.left}
-                y={PAD.top}
-                width={CHART_WIDTH - PAD.left - PAD.right}
-                height={CHART_HEIGHT - PAD.top - PAD.bottom}
-                fill="transparent"
-              />
             </svg>
           )}
         </div>
-
-        {showTable && filterMode === 'product' && (
-          <div className={styles.tableSection}>
-            <p className={styles.tableHeading}>Accounts with bad reviews</p>
-            {entries.length === 0 ? (
-              <p className={styles.emptyText}>No bad reviews for this product yet</p>
-            ) : (
-              <div className={styles.tableWrap}>
-                <table className={styles.reviewTable}>
-                  <thead>
-                    <tr>
-                      <th>Submitted</th>
-                      <th>Customer</th>
-                      <th>Rating</th>
-                      <th>Issue / Review</th>
-                      <th>Order</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {entries.map((entry) => {
-                      const displayName = formatContactName(entry.customerName)
-                      return (
-                        <tr key={entry.id}>
-                          <td>{formatReviewDate(entry.createdAt)}</td>
-                          <td>
-                            {entry.userId ? (
-                              <button
-                                type="button"
-                                className={styles.customerBtn}
-                                onClick={() => openProfile(entry.userId, displayName)}
-                              >
-                                {displayName}
-                              </button>
-                            ) : (
-                              <span>{displayName}</span>
-                            )}
-                            {entry.customerEmail ? (
-                              <p className={styles.customerMeta}>{entry.customerEmail}</p>
-                            ) : null}
-                          </td>
-                          <td>
-                            <span className={styles.ratingBadge}>{ratingStars(entry.rating)}</span>
-                            <span className={styles.ratingValue}>{entry.rating}/5</span>
-                          </td>
-                          <td>
-                            <p className={styles.reviewTitle}>{entry.title}</p>
-                            <p className={styles.reviewComment}>{entry.comment}</p>
-                          </td>
-                          <td>{entry.orderId ?? '—'}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {profileUserId && (
@@ -572,3 +473,6 @@ export function BadReviewAnalysesPanel({ refreshKey = 0 }: { refreshKey?: number
     </>
   )
 }
+
+// Alias for clearer naming
+export const ReviewAnalysisPanel = BadReviewAnalysesPanel

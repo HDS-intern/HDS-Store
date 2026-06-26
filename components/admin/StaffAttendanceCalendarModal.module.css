@@ -17,7 +17,7 @@
   overflow-y: auto;
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #1e293b;
+  background: var(--card);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
 }
 
@@ -32,13 +32,13 @@
 .title {
   font-size: 1.125rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
   margin: 0;
 }
 
 .subtitle {
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin: 0.25rem 0 0;
 }
 
@@ -51,7 +51,7 @@
   border: none;
   border-radius: 0.5rem;
   background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   cursor: pointer;
 }
 
@@ -69,7 +69,7 @@
 .monthLabel {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .navBtn {
@@ -80,14 +80,14 @@
   height: 2rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 0.5rem;
-  background: #0f172a;
-  color: #cbd5e1;
+  background: var(--background);
+  color: var(--muted-foreground);
   cursor: pointer;
 }
 
 .navBtn:hover {
   border-color: rgba(59, 130, 246, 0.45);
-  color: #93c5fd;
+  color: var(--primary);
 }
 
 .legend {
@@ -142,7 +142,7 @@
   margin-bottom: 0.35rem;
   font-size: 0.6875rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--muted-foreground);
   text-align: center;
 }
 
@@ -170,7 +170,7 @@
 .dayNumber {
   font-size: 0.8125rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--foreground);
 }
 
 .dayMeta {
@@ -202,7 +202,7 @@
 .loading {
   padding: 2rem 1.25rem;
   text-align: center;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-size: 0.875rem;
 }
 
@@ -214,5 +214,5 @@
   border-top: 1px solid rgba(148, 163, 184, 0.12);
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--muted-foreground);
 }

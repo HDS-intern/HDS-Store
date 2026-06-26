@@ -1,12 +1,14 @@
 .page {
   width: 100%;
   overflow-x: hidden;
+  background: var(--background);
+  color: var(--foreground);
 }
 
 .breadcrumb {
   padding: 1rem 0;
-  border-bottom: 1px solid rgba(53, 106, 176, 0.12);
-  background: rgba(255, 255, 255, 1);
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
 }
 
 .breadcrumbInner {
@@ -17,7 +19,7 @@
 }
 
 .breadcrumbLink {
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   font-weight: 500;
 }
 
@@ -30,7 +32,7 @@
 }
 
 .breadcrumbCurrent {
-  color: rgba(53, 106, 176, 0.75);
+  color: var(--muted-foreground);
   font-weight: 600;
 }
 
@@ -65,13 +67,13 @@
 .sectionTitle {
   font-size: 1.375rem;
   font-weight: 800;
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   margin-bottom: 1rem;
 }
 
 .sectionDesc {
   font-size: 0.9375rem;
-  color: rgba(53, 106, 176, 0.65);
+  color: var(--muted-foreground);
   line-height: 1.6;
   margin-bottom: 1.5rem;
   max-width: 48rem;
@@ -98,28 +100,28 @@
 .card {
   padding: 1.5rem;
   border-radius: 0.875rem;
-  background: #fff;
-  border: 1px solid rgba(53, 106, 176, 0.12);
+  background: var(--card);
+  border: 1px solid var(--border);
   box-shadow: 0 4px 16px rgba(53, 106, 176, 0.06);
 }
 
 .cardIcon {
   width: 2.5rem;
   height: 2.5rem;
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   margin-bottom: 0.75rem;
 }
 
 .cardTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   margin-bottom: 0.5rem;
 }
 
 .cardText {
   font-size: 0.9375rem;
-  color: rgba(53, 106, 176, 0.7);
+  color: var(--muted-foreground);
   line-height: 1.55;
 }
 
@@ -130,10 +132,10 @@
 .categoryTitle {
   font-size: 1.125rem;
   font-weight: 700;
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid rgba(53, 106, 176, 0.15);
+  border-bottom: 2px solid var(--border);
 }
 
 .faqList {
@@ -144,8 +146,8 @@
 
 .faqItem {
   border-radius: 0.875rem;
-  background: #fff;
-  border: 1px solid rgba(53, 106, 176, 0.12);
+  background: var(--card);
+  border: 1px solid var(--border);
   overflow: hidden;
 }
 
@@ -158,7 +160,7 @@
   padding: 1rem 1.25rem;
   font-weight: 600;
   font-size: 0.9375rem;
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   text-align: left;
   background: none;
   border: none;
@@ -166,13 +168,13 @@
 }
 
 .faqQuestion:hover {
-  background: rgba(53, 106, 176, 0.04);
+  background: var(--page-hero-accent);
 }
 
 .faqAnswer {
   padding: 0 1.25rem 1rem;
   font-size: 0.9375rem;
-  color: rgba(53, 106, 176, 0.7);
+  color: var(--muted-foreground);
   line-height: 1.6;
 }
 
@@ -188,7 +190,7 @@
 
 .infoTable {
   border-radius: 0.875rem;
-  border: 1px solid rgba(53, 106, 176, 0.12);
+  border: 1px solid var(--border);
   overflow: hidden;
   margin-bottom: 2rem;
 }
@@ -197,7 +199,7 @@
   display: flex;
   flex-wrap: wrap;
   padding: 0.875rem 1.25rem;
-  border-bottom: 1px solid rgba(53, 106, 176, 0.08);
+  border-bottom: 1px solid var(--border);
 }
 
 .tableRow:last-child {
@@ -205,12 +207,12 @@
 }
 
 .tableRow:nth-child(even) {
-  background: rgba(53, 106, 176, 0.03);
+  background: var(--muted);
 }
 
 .tableKey {
   font-weight: 600;
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   width: 100%;
   margin-bottom: 0.25rem;
 }
@@ -223,7 +225,7 @@
 }
 
 .tableValue {
-  color: rgba(53, 106, 176, 0.75);
+  color: var(--muted-foreground);
   font-size: 0.9375rem;
   line-height: 1.5;
   flex: 1;
@@ -234,7 +236,7 @@
   align-items: flex-start;
   gap: 0.5rem;
   font-size: 0.9375rem;
-  color: rgba(53, 106, 176, 0.75);
+  color: var(--muted-foreground);
   padding: 0.375rem 0;
   line-height: 1.5;
 }
@@ -243,7 +245,7 @@
   flex-shrink: 0;
   width: 1.25rem;
   height: 1.25rem;
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   margin-top: 0.125rem;
 }
 
@@ -251,14 +253,14 @@
   margin-top: 2rem;
   padding: 1.5rem;
   border-radius: 0.875rem;
-  background: rgba(53, 106, 176, 0.06);
-  border: 1px solid rgba(53, 106, 176, 0.12);
+  background: var(--muted);
+  border: 1px solid var(--border);
   text-align: center;
 }
 
 .ctaText {
   font-size: 0.9375rem;
-  color: rgba(53, 106, 176, 0.75);
+  color: var(--muted-foreground);
   margin-bottom: 1rem;
 }
 
@@ -280,7 +282,7 @@
 }
 
 .infoLink {
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   font-weight: 600;
   text-decoration: underline;
 }

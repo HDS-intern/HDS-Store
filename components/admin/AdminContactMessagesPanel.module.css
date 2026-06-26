@@ -10,13 +10,13 @@
 .pageTitle {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
   margin: 0;
 }
 
 .pageDesc {
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin: 0.35rem 0 0;
 }
 
@@ -36,7 +36,7 @@
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.25);
   background: rgba(30, 41, 59, 0.8);
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -44,12 +44,12 @@
 
 .syncBtnActive {
   border-color: rgba(96, 165, 250, 0.45);
-  color: #bfdbfe;
+  color: var(--primary);
 }
 
 .syncBtn:hover {
   border-color: rgba(96, 165, 250, 0.45);
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .syncBtnLabel {
@@ -66,7 +66,7 @@
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.25);
   background: rgba(30, 41, 59, 0.8);
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -74,7 +74,7 @@
 
 .refreshBtn:hover {
   border-color: rgba(96, 165, 250, 0.45);
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .spinning {
@@ -83,7 +83,7 @@
 
 .tableWrap {
   overflow-x: auto;
-  background: #1e293b;
+  background: var(--card);
   border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 0.875rem;
 }
@@ -97,7 +97,7 @@
 .table th {
   text-align: left;
   padding: 0.75rem 1rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-weight: 600;
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
   white-space: nowrap;
@@ -105,7 +105,7 @@
 
 .table td {
   padding: 0.75rem 1rem;
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   border-bottom: 1px solid rgba(148, 163, 184, 0.08);
   vertical-align: top;
 }
@@ -119,7 +119,7 @@
 
 .empty {
   text-align: center;
-  color: #64748b;
+  color: var(--muted-foreground);
   padding: 2rem 1rem;
 }
 
@@ -127,7 +127,7 @@
   background: none;
   border: none;
   padding: 0;
-  color: #93c5fd;
+  color: var(--primary);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -143,14 +143,14 @@
   padding: 0;
   margin: 0;
   font: inherit;
-  color: #e2e8f0;
+  color: var(--foreground);
   cursor: pointer;
   text-decoration: none;
 }
 
 .emailBtn:hover {
   text-decoration: underline;
-  color: #93c5fd;
+  color: var(--primary);
 }
 
 .emailBtn:focus-visible {
@@ -178,7 +178,7 @@
   overflow-y: auto;
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #1e293b;
+  background: var(--card);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
   padding: 1.25rem;
 }
@@ -186,19 +186,19 @@
 .popupTitle {
   font-size: 1.125rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
   margin: 0 0 0.25rem;
 }
 
 .popupMeta {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin: 0 0 1rem;
 }
 
 .detailLine {
   font-size: 0.8125rem;
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   margin: 0 0 0.5rem;
   line-height: 1.45;
 }
@@ -207,9 +207,9 @@
   margin-top: 0.75rem;
   padding: 0.875rem;
   border-radius: 0.625rem;
-  background: #0f172a;
+  background: var(--background);
   border: 1px solid rgba(148, 163, 184, 0.12);
-  color: #e2e8f0;
+  color: var(--foreground);
   font-size: 0.875rem;
   white-space: pre-wrap;
   line-height: 1.5;

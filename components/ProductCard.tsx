@@ -165,7 +165,7 @@ export function ProductCard({ product, stackedPrice = false }: ProductCardProps)
                   <button
                     type="button"
                     onClick={handleDecreaseQuantity}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 bg-white text-primary hover:bg-primary/10 transition-colors"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 bg-card text-primary hover:bg-primary/10 transition-colors"
                     aria-label="Decrease quantity"
                   >
                     <Minus className="w-4 h-4" />
@@ -177,7 +177,7 @@ export function ProductCard({ product, stackedPrice = false }: ProductCardProps)
                     type="button"
                     onClick={handleIncreaseQuantity}
                     disabled={atStockLimit}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 bg-white text-primary hover:bg-primary/10 transition-colors disabled:opacity-35 disabled:cursor-not-allowed"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 bg-card text-primary hover:bg-primary/10 transition-colors disabled:opacity-35 disabled:cursor-not-allowed"
                     aria-label="Increase quantity"
                   >
                     <Plus className="w-4 h-4" />

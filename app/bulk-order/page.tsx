@@ -55,7 +55,7 @@ export default function BulkOrderPage() {
 
       const rows = parseSheetRows(matrix)
       if (rows.length === 0) {
-        setError('No valid rows found. Use the template with Model Number and Qty columns.')
+        setError('No valid rows found. Use the template with SKU ID and Qty columns.')
         setParsedLines([])
         setShowPreview(false)
         return
@@ -138,7 +138,7 @@ export default function BulkOrderPage() {
       <div className={styles.content}>
         <h1 className={styles.title}>Bulk Order Sheet</h1>
         <p className={styles.subtitle}>
-          Download the template, fill in model numbers and quantities, then upload your file.
+          Download the template, fill in SKU IDs and quantities, then upload your file.
           A preview will open for you to review — confirm to proceed to checkout and place your order.
         </p>
 
@@ -163,8 +163,8 @@ export default function BulkOrderPage() {
             Download Template
           </h2>
           <p className={styles.cardHint}>
-            Use the spreadsheet template with <strong>Model Number</strong> and <strong>Qty</strong>{' '}
-            columns. Model numbers should match product Model IDs (e.g. HDS-SNT-4K-001).
+            Use the spreadsheet template with <strong>SKU ID</strong> and <strong>Qty</strong>{' '}
+            columns. SKU ID should match product SKU IDs (e.g. HDS-SNT-4K-001).
           </p>
           <div className={styles.actions}>
             <a href="/api/bulk-order/template?format=xlsx" className={`${styles.btn} ${styles.btnPrimary}`}>

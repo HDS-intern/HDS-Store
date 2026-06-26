@@ -7,6 +7,6 @@
 .label {
   font-size: 0.8125rem;
   font-weight: 700;
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   margin: 0 0 0.5rem;
 }

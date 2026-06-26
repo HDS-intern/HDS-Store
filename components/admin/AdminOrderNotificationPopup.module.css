@@ -16,7 +16,7 @@
   max-width: 420px;
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #1e293b;
+  background: var(--card);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
   overflow: hidden;
   animation: slideUp 0.25s ease;
@@ -41,7 +41,7 @@
 
 .iconNew {
   background: rgba(59, 130, 246, 0.2);
-  color: #93c5fd;
+  color: var(--primary);
 }
 
 .iconCancelled {
@@ -57,7 +57,7 @@
 .title {
   font-size: 1.125rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
   margin: 0;
 }
 
@@ -67,7 +67,7 @@
 
 .message {
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   line-height: 1.5;
   margin: 0 0 1rem;
 }
@@ -78,7 +78,7 @@
   gap: 0.375rem;
   padding: 0.875rem;
   border-radius: 0.625rem;
-  background: #0f172a;
+  background: var(--background);
   font-size: 0.8125rem;
 }
 
@@ -89,11 +89,11 @@
 }
 
 .metaLabel {
-  color: #64748b;
+  color: var(--muted-foreground);
 }
 
 .metaValue {
-  color: #e2e8f0;
+  color: var(--foreground);
   font-weight: 600;
   text-align: right;
 }
@@ -118,7 +118,7 @@
 
 .btnSecondary {
   background: #334155;
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .btnPrimary {
@@ -134,7 +134,7 @@
 .queueHint {
   text-align: center;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   padding-bottom: 1rem;
 }
 

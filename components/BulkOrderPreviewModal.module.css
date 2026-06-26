@@ -18,7 +18,7 @@
   overflow-y: auto;
   border-radius: 1rem;
   border: 1px solid rgba(53, 106, 176, 0.2);
-  background: #fff;
+  background: var(--card);
   box-shadow: 0 24px 48px rgba(53, 106, 176, 0.18);
   animation: slideUp 0.25s ease;
 }
@@ -34,13 +34,13 @@
 .title {
   font-size: 1.25rem;
   font-weight: 800;
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
   margin: 0;
 }
 
 .subtitle {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   margin: 0.25rem 0 0;
 }
 
@@ -52,28 +52,28 @@
   height: 2.25rem;
   border: none;
   border-radius: 0.5rem;
-  background: rgba(53, 106, 176, 0.08);
-  color: #64748b;
+  background: var(--muted);
+  color: var(--muted-foreground);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .closeBtn:hover {
   background: rgba(53, 106, 176, 0.14);
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
 }
 
 .fileName {
   padding: 0 1.5rem 0.75rem;
   font-size: 0.8125rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   margin: 0;
 }
 
 .tableWrap {
   margin: 0 1.5rem;
   overflow-x: auto;
-  border: 1px solid rgba(53, 106, 176, 0.12);
+  border: 1px solid var(--border);
   border-radius: 0.75rem;
 }
 
@@ -86,15 +86,15 @@
 .table th {
   text-align: left;
   padding: 0.75rem 1rem;
-  background: rgba(53, 106, 176, 0.06);
-  color: rgba(53, 106, 176, 1);
+  background: var(--muted);
+  color: var(--primary);
   font-weight: 700;
 }
 
 .table td {
   padding: 0.75rem 1rem;
   border-top: 1px solid rgba(53, 106, 176, 0.08);
-  color: #334155;
+  color: var(--foreground);
 }
 
 .rowError {
@@ -117,7 +117,7 @@
   padding-top: 1rem;
   border-top: 1px solid rgba(53, 106, 176, 0.12);
   font-weight: 700;
-  color: rgba(53, 106, 176, 1);
+  color: var(--primary);
 }
 
 .warning {
@@ -127,7 +127,7 @@
   margin: 1rem 1.5rem 0;
   padding: 0.75rem 1rem;
   border-radius: 0.625rem;
-  background: #fffbeb;
+  background: var(--card)beb;
   border: 1px solid #fde68a;
   color: #a16207;
   font-size: 0.8125rem;
@@ -156,8 +156,8 @@
 }
 
 .btnOutline {
-  background: #fff;
-  color: rgba(53, 106, 176, 1);
+  background: var(--card);
+  color: var(--primary);
   border: 1px solid rgba(53, 106, 176, 0.3);
 }
 

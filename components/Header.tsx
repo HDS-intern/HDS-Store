@@ -2,13 +2,22 @@
 
 import styles from './Header.module.css'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useApp } from '@/lib/context'
+import { isAdminArea } from '@/lib/theme'
 import { ShoppingCart, Heart, Menu, X, Search, FileSpreadsheet } from 'lucide-react'
-import { useState } from 'react'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { useEffect, useState } from 'react'
 
 export function Header() {
+  const pathname = usePathname()
   const { cart, wishlist, user } = useApp()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [hideThemeToggle, setHideThemeToggle] = useState(false)
+
+  useEffect(() => {
+    setHideThemeToggle(isAdminArea(pathname, window.location.search))
+  }, [pathname])
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
@@ -51,6 +60,8 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-1 sm:gap-2 ml-4 sm:ml-8">
+            {!hideThemeToggle && <ThemeToggle />}
+
             <Link
               href="/bulk-order"
               className={`${styles.iconBtn} hidden lg:inline-flex`}
@@ -135,6 +146,12 @@ export function Header() {
             >
               Bulk Order Sheet
             </Link>
+            {!hideThemeToggle && (
+            <div className={styles.mobileThemeRow}>
+              <span>Theme</span>
+              <ThemeToggle />
+            </div>
+            )}
             <Link
               href="/wishlist"
               className={styles.mobileLink}

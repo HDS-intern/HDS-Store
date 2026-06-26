@@ -9,10 +9,10 @@
   max-width: min(360px, calc(100vw - 2.5rem));
   padding: 1rem 1.125rem;
   border-radius: 0.875rem;
-  background: #1e293b;
+  background: var(--card);
   border: 1px solid rgba(34, 197, 94, 0.35);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.35);
-  color: #f8fafc;
+  color: var(--foreground);
   animation: slideIn 0.3s ease;
 }
 
@@ -32,19 +32,19 @@
 .title {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--foreground);
   margin: 0 0 0.25rem;
 }
 
 .message {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin: 0;
   line-height: 1.45;
 }
 
 .orderId {
-  color: #93c5fd;
+  color: var(--primary);
   font-weight: 600;
 }
 

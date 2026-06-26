@@ -1,0 +1,30 @@
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: var(--primary);
+  cursor: pointer;
+  transition:
+    background 0.25s ease,
+    transform 0.2s ease,
+    border-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.toggle:hover {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  transform: translateY(-2px);
+}
+
+.toggle:active {
+  transform: translateY(0);
+}
+
+:global(html.dark) .toggle {
+  color: var(--primary);
+}

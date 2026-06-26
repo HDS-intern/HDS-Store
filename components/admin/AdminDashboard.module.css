@@ -1,8 +1,173 @@
 .panel {
-  background: #1e293b;
+  background: var(--card);
   border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 0.875rem;
   padding: 1.25rem;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.panel:hover {
+  border-color: rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.dashboardRoot {
+  overflow-x: hidden;
+}
+
+.awaitingEntrance {
+  visibility: hidden;
+}
+
+.chartPanelWrap {
+  min-height: 0;
+}
+
+.attSlide {
+  width: 100%;
+}
+
+.pageSubheading {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.chartsRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .chartsRow {
+    grid-template-columns: 1.4fr 1fr 1fr;
+  }
+}
+
+.chartPanel {
+  min-height: 0;
+}
+
+.sidePanel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.attendanceList {
+  flex: 1;
+  min-height: 0;
+  max-height: 11rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.attendanceList::-webkit-scrollbar {
+  width: 4px;
+}
+
+.attendanceList::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+
+.warrantyPanel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.warrantyChartWrap {
+  flex-shrink: 0;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.625rem;
+  background: var(--background);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.warrantyChartMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.warrantyChartTotal {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--foreground);
+  line-height: 1;
+}
+
+.warrantyChartSub {
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.warrantyChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.375rem;
+  height: 6.5rem;
+}
+
+.warrantyChartCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  min-width: 0;
+}
+
+.warrantyChartValue {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--primary);
+  min-height: 0.875rem;
+  margin-bottom: 0.2rem;
+}
+
+.warrantyChartBar {
+  width: 100%;
+  max-width: 1.75rem;
+  border-radius: 0.3rem 0.3rem 0 0;
+  background: linear-gradient(180deg, #c4b5fd, #7c3aed);
+  transition: height 0.45s ease;
+}
+
+.warrantyChartLabel {
+  margin-top: 0.35rem;
+  font-size: 0.5625rem;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.warrantyChartEmpty {
+  margin: 0;
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.pendingMeta {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.pendingMeta strong {
+  color: var(--foreground);
 }
 
 .panelTitle {
@@ -10,7 +175,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin-bottom: 1rem;
 }
 
@@ -43,32 +208,23 @@
 
 .barLabel {
   font-size: 0.625rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   text-align: center;
   line-height: 1.2;
 }
 
 .barValue {
   font-size: 0.6875rem;
-  color: #93c5fd;
+  color: var(--primary);
   font-weight: 600;
 }
 
 .statGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .statGrid {
-    grid-template-columns: repeat(4, 1fr);
-  }
+  display: none;
 }
 
 .statCard {
-  background: #1e293b;
+  background: var(--card);
   border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 0.875rem;
   padding: 1rem 1.25rem;
@@ -77,12 +233,12 @@
 .statValue {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
 }
 
 .statLabel {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   margin-top: 0.25rem;
 }
 
@@ -108,12 +264,12 @@
 }
 
 .attName {
-  color: #e2e8f0;
+  color: var(--foreground);
   font-weight: 500;
 }
 
 .attMeta {
-  color: #64748b;
+  color: var(--muted-foreground);
   font-size: 0.75rem;
 }
 
@@ -138,12 +294,49 @@
 .pageHeading {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.dashboardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
   margin-bottom: 1.25rem;
 }
 
+.reportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: rgba(53, 106, 176, 1);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.reportBtn:hover {
+  opacity: 0.92;
+}
+
+.compactPanel {
+  max-height: 20rem;
+  overflow: hidden;
+}
+
+.compactPanel .chartBox {
+  min-height: 8rem !important;
+}
+
 .emptyText {
-  color: #64748b;
+  color: var(--muted-foreground);
   font-size: 0.875rem;
   text-align: center;
   padding: 2rem 0;
@@ -151,7 +344,7 @@
 
 .bulkPanel {
   margin-top: 1.25rem;
-  background: #1e293b;
+  background: var(--card);
   border: 1px solid rgba(59, 130, 246, 0.25);
   border-radius: 0.875rem;
   padding: 1.25rem;
@@ -159,13 +352,13 @@
 
 .bulkHint {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
   line-height: 1.5;
   margin-bottom: 1rem;
 }
 
 .bulkHint strong {
-  color: #cbd5e1;
+  color: var(--muted-foreground);
 }
 
 .bulkActions {
@@ -200,8 +393,8 @@
 }
 
 .bulkBtnOutline {
-  background: #0f172a;
-  color: #93c5fd;
+  background: var(--background);
+  color: var(--primary);
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
@@ -219,12 +412,141 @@
   align-items: center;
   gap: 0.35rem;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   padding: 0.5rem 0;
 }
 
-.warrantyPanel {
-  margin-top: 1.25rem;
+.attRowBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.625rem 0.35rem;
+  border: none;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 0.375rem;
+  transition: background 0.2s ease;
+}
+
+.attRowBtn:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.panelTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.panelTitleRow .panelTitle {
+  margin-bottom: 0;
+}
+
+.detailsLink {
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  transition: background 0.2s ease;
+}
+
+.detailsLink:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.warrantyCompactList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-height: 0;
+  max-height: 7.5rem;
+  overflow-y: auto;
+}
+
+.warrantyCompactItem {
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 0.5rem;
+  background: var(--background);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.warrantyCompactItem:hover {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.warrantyEmptyBtn {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px dashed rgba(148, 163, 184, 0.25);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.viewAllBtn {
+  margin-top: 0.35rem;
+  padding: 0.4rem;
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.detailActions {
+  margin-top: 1rem;
+}
+
+.detailList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detailListItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 0.5rem;
+  background: var(--background);
+  cursor: pointer;
+  color: var(--foreground);
+  transition: background 0.2s ease;
+}
+
+.detailListItem:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.detailListItem strong {
+  color: var(--foreground);
+  font-size: 0.875rem;
+}
+
+.detailListItem span {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
 }
 
 .warrantyHeader {
@@ -232,7 +554,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.warrantyHeader .panelTitle {
+  margin-bottom: 0;
 }
 
 .refreshBtn {
@@ -243,8 +569,8 @@
   height: 2rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #0f172a;
-  color: #93c5fd;
+  background: var(--background);
+  color: var(--primary);
   cursor: pointer;
 }
 
@@ -281,7 +607,7 @@
 }
 
 .warrantyTable th {
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -289,25 +615,25 @@
 }
 
 .warrantyTable td {
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .claimCustomer {
   font-weight: 600;
-  color: #f8fafc;
+  color: var(--foreground);
 }
 
 .claimMeta {
   margin-top: 0.125rem;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--muted-foreground);
 }
 
 .claimNotes {
   max-width: 18rem;
   white-space: pre-wrap;
   line-height: 1.45;
-  color: #cbd5e1;
+  color: var(--muted-foreground);
 }
 
 .docActions {
@@ -333,13 +659,13 @@
 .docBtn {
   border: none;
   background: rgba(59, 130, 246, 0.18);
-  color: #93c5fd;
+  color: var(--primary);
 }
 
 .docBtnOutline {
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #0f172a;
-  color: #cbd5e1;
+  background: var(--background);
+  color: var(--muted-foreground);
   word-break: break-all;
 }
 

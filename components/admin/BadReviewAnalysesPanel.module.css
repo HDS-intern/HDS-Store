@@ -1,12 +1,23 @@
 .panel {
-  background: #1e293b;
+  background: var(--card);
   border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 0.875rem;
   padding: 1.25rem;
 }
 
+.embedded {
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
 .reviewPanel {
   margin-top: 1.25rem;
+}
+
+.compactPanel {
+  max-height: 22rem;
+  overflow: hidden;
 }
 
 .panelHeader {
@@ -22,8 +33,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #94a3b8;
-  margin: 0 0 1rem;
+  color: var(--muted-foreground);
+  margin: 0;
 }
 
 .refreshBtn {
@@ -34,8 +45,8 @@
   height: 2rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #0f172a;
-  color: #93c5fd;
+  background: var(--background);
+  color: var(--primary);
   cursor: pointer;
 }
 
@@ -66,7 +77,7 @@
   display: inline-flex;
   padding: 0.2rem;
   border-radius: 9999px;
-  background: #0f172a;
+  background: var(--background);
   border: 1px solid rgba(148, 163, 184, 0.15);
 }
 
@@ -83,7 +94,7 @@
 
 .toggleBtn {
   background: transparent;
-  color: #94a3b8;
+  color: var(--muted-foreground);
 }
 
 .toggleActive {
@@ -104,8 +115,8 @@
   padding: 0.45rem 0.625rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--background);
+  color: var(--foreground);
   font-size: 0.8125rem;
 }
 
@@ -117,7 +128,7 @@
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
   background: rgba(59, 130, 246, 0.18);
-  color: #93c5fd;
+  color: var(--primary);
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
@@ -144,7 +155,7 @@
   align-items: center;
   gap: 0.375rem;
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
 }
 
 .legendDot {
@@ -155,7 +166,108 @@
 
 .chartBox {
   position: relative;
-  min-height: 14rem;
+  min-height: 9rem;
+  max-height: 11rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dropdownWrap {
+  position: relative;
+}
+
+.dropdownBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.dropdownBtn:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+  transition: transform 0.2s ease;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 10;
+  min-width: 9rem;
+  padding: 0.35rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: var(--card);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  animation: menuIn 0.2s ease;
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdownItem,
+.dropdownActive {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.65rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted-foreground);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dropdownActive {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--primary);
+}
+
+.dropdownItem:hover {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--foreground);
+}
+
+.barRect {
+  transition: opacity 0.2s ease;
+}
+
+.productLabel {
+  fill: #94a3b8;
+  font-size: 8px;
+}
+
+.scoreLabel {
+  fill: #fbbf24;
+  font-size: 8px;
+  font-weight: 700;
 }
 
 .chartLoading {
@@ -216,7 +328,7 @@
   margin: 0 0 0.375rem;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--foreground);
 }
 
 .tooltipRow {
@@ -226,15 +338,15 @@
   gap: 0.75rem;
   margin: 0.2rem 0;
   font-size: 0.6875rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
 }
 
 .tooltipRow strong {
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .emptyText {
-  color: #64748b;
+  color: var(--muted-foreground);
   font-size: 0.875rem;
   text-align: center;
   padding: 2rem 0;
@@ -252,7 +364,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: var(--muted-foreground);
 }
 
 .tableWrap {
@@ -274,7 +386,7 @@
 }
 
 .reviewTable th {
-  color: #94a3b8;
+  color: var(--muted-foreground);
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -282,14 +394,14 @@
 }
 
 .reviewTable td {
-  color: #e2e8f0;
+  color: var(--foreground);
 }
 
 .customerBtn {
   border: none;
   background: transparent;
   padding: 0;
-  color: #f8fafc;
+  color: var(--foreground);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -304,7 +416,7 @@
 .customerMeta {
   margin: 0.125rem 0 0;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--muted-foreground);
 }
 
 .ratingBadge {
@@ -318,19 +430,19 @@
   display: block;
   margin-top: 0.125rem;
   font-size: 0.6875rem;
-  color: #94a3b8;
+  color: var(--muted-foreground);
 }
 
 .reviewTitle {
   margin: 0;
   font-weight: 600;
-  color: #f8fafc;
+  color: var(--foreground);
 }
 
 .reviewComment {
   margin: 0.25rem 0 0;
   max-width: 20rem;
   line-height: 1.45;
-  color: #cbd5e1;
+  color: var(--muted-foreground);
   white-space: pre-wrap;
 }

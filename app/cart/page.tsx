@@ -184,8 +184,8 @@ export default function CartPage() {
             </div>
 
             <div className="flex justify-between items-center py-6 mb-6">
-              <span className="text-lg font-bold text-foreground">Total</span>
-              <span className="text-2xl font-bold text-primary">
+              <span className={styles.summaryTotalLabel}>Total</span>
+              <span className={styles.summaryTotalAmount}>
                 {formatPrice(grandTotal)}
               </span>
             </div>

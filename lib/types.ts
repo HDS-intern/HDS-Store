@@ -54,6 +54,7 @@ export interface Product {
     email: string
     documentation: string
   }
+  certificationImage?: string
 }
 
 export interface CartItem {
@@ -85,6 +86,7 @@ export interface User {
   role: 'customer' | 'staff' | 'admin'
   permissions?: UserPermissions
   accessLocked?: boolean
+  profilePhoto?: string
 }
 
 export interface Order {

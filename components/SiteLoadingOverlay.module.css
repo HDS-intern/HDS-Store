@@ -66,14 +66,13 @@
   box-shadow:
     0 0 0 1px rgba(96, 165, 250, 0.18),
     0 12px 32px rgba(37, 99, 235, 0.22);
-  animation: logoPulse 1.6s ease-in-out infinite;
+  animation: logoRotate 4s linear infinite;
 }
 
 .logo {
   width: 4.5rem;
   height: 4.5rem;
   object-fit: contain;
-  animation: logoSpin 2.4s ease-in-out infinite;
 }
 
 .label {
@@ -124,29 +123,9 @@
   }
 }
 
-@keyframes logoPulse {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow:
-      0 0 0 1px rgba(96, 165, 250, 0.18),
-      0 12px 32px rgba(37, 99, 235, 0.22);
-  }
-  50% {
-    transform: scale(1.04);
-    box-shadow:
-      0 0 0 6px rgba(96, 165, 250, 0.08),
-      0 16px 36px rgba(37, 99, 235, 0.32);
-  }
-}
-
-@keyframes logoSpin {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  50% {
-    transform: rotate(180deg);
+@keyframes logoRotate {
+  to {
+    transform: rotate(360deg);
   }
 }
 

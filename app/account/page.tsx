@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -14,7 +14,7 @@ import { apiFetch } from '@/lib/api'
 import { formatPrice } from '@/lib/formatPrice'
 import type { Order, SavedAddress, User } from '@/lib/types'
 import {
-  User,
+  User as UserIcon,
   Package,
   Heart,
   Settings,
@@ -28,9 +28,10 @@ import {
   X,
   Plus,
   Trash2,
-  FileText,
+  Camera,
 } from 'lucide-react'
-import { TermsAgreementDownload } from '@/components/TermsAgreementDownload'
+import { TermsAgreementViewButton } from '@/components/TermsAgreementViewButton'
+import { validateStaffPhotoFile } from '@/lib/staffPhoto'
 import styles from './page.module.css'
 
 type DashboardTab = 'overview' | 'orders' | 'wishlist' | 'settings'
@@ -49,6 +50,7 @@ export default function AccountPage() {
   const [profileName, setProfileName] = useState('')
   const [profileEmail, setProfileEmail] = useState('')
   const [profilePhone, setProfilePhone] = useState('')
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
   const [profileAddresses, setProfileAddresses] = useState<SavedAddress[]>([])
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMessage, setProfileMessage] = useState('')
@@ -77,6 +79,7 @@ export default function AccountPage() {
     setProfileName(profileDisplayName(user.name))
     setProfileEmail(user.email)
     setProfilePhone(user.phone || '')
+    setProfilePhoto(user.profilePhoto || null)
     if (user.addresses?.length) {
       setProfileAddresses(user.addresses)
     } else {
@@ -117,6 +120,28 @@ export default function AccountPage() {
     setProfileAddresses((prev) => (prev.length <= 1 ? prev : prev.filter((a) => a.id !== id)))
   }
 
+  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const photoError = validateStaffPhotoFile(file)
+    if (photoError) {
+      setProfileError(photoError)
+      e.target.value = ''
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setProfilePhoto(reader.result)
+        setProfileError('')
+      }
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
   const handleSaveProfile = async () => {
     setProfileError('')
     setProfileMessage('')
@@ -129,6 +154,7 @@ export default function AccountPage() {
           email: profileEmail,
           phone: profilePhone,
           addresses: profileAddresses,
+          profilePhoto,
         }),
       })
       if (data.user) setUser(data.user)
@@ -164,8 +190,18 @@ export default function AccountPage() {
             <div className="bg-card rounded-lg border border-border p-6 sticky top-20">
               {/* Profile Info */}
               <div className="mb-6 pb-6 border-b border-border">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center mb-4">
-                  <User className="w-8 h-8 text-primary-foreground" />
+                <div className={styles.sidebarAvatarWrap}>
+                  {isCustomer && profilePhoto ? (
+                    <img
+                      src={profilePhoto}
+                      alt={profileDisplayName(demoUser.name)}
+                      className={styles.sidebarAvatarImg}
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                      <UserIcon className="w-8 h-8 text-primary-foreground" />
+                    </div>
+                  )}
                 </div>
                 <h3 className="font-bold text-lg text-foreground">
                   {profileDisplayName(demoUser.name)}
@@ -532,6 +568,48 @@ export default function AccountPage() {
                           className={styles.fieldInput}
                         />
                       </div>
+                      {isCustomer && (
+                        <div>
+                          <label className={styles.fieldLabel}>Profile Photo</label>
+                          <div className={styles.profilePhotoRow}>
+                            <div className={styles.profilePhotoPreview}>
+                              {profilePhoto ? (
+                                <img
+                                  src={profilePhoto}
+                                  alt="Profile preview"
+                                  className={styles.profilePhotoImg}
+                                />
+                              ) : (
+                                <UserIcon className="w-8 h-8 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div>
+                              <label className={styles.profilePhotoUploadBtn}>
+                                <Camera className="w-4 h-4" />
+                                Upload Photo
+                                <input
+                                  type="file"
+                                  accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                                  className={styles.hiddenFileInput}
+                                  onChange={handleProfilePhotoChange}
+                                />
+                              </label>
+                              <p className={styles.profilePhotoHint}>
+                                PNG or JPG only. Maximum size 2.5 MB.
+                              </p>
+                              {profilePhoto && (
+                                <button
+                                  type="button"
+                                  className={styles.removePhotoBtn}
+                                  onClick={() => setProfilePhoto(null)}
+                                >
+                                  Remove photo
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -618,10 +696,10 @@ export default function AccountPage() {
                   <div className={styles.settingsDivider}>
                     <h2 className={styles.settingsSectionTitle}>Terms and Agreement</h2>
                     <p className={styles.settingsHint}>
-                      Download the latest HDS terms and agreement document for your records.
+                      View the latest HDS terms and agreement document.
                     </p>
-                    <TermsAgreementDownload
-                      className={styles.termsDownloadBtn}
+                    <TermsAgreementViewButton
+                      className={styles.termsViewBtn}
                       onError={setProfileError}
                     />
                   </div>

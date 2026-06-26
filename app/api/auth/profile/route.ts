@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getUserBySession, getTokenFromRequest } from '@/lib/auth'
 import { getDb, dbUserToUser, type DbUser } from '@/lib/db'
+import { validateStaffPhotoDataUrl } from '@/lib/staffPhoto'
 import type { SavedAddress } from '@/lib/types'
 
 export const runtime = 'nodejs'
@@ -47,6 +48,12 @@ export async function PATCH(request: Request) {
     const email = String(body.email ?? '').trim()
     const phone = String(body.phone ?? '').trim()
     const addresses = normalizeAddresses(body.addresses)
+    const profilePhoto =
+      body.profilePhoto === null || body.profilePhoto === ''
+        ? null
+        : typeof body.profilePhoto === 'string'
+          ? body.profilePhoto
+          : undefined
 
     if (!name) {
       return NextResponse.json({ error: 'Full name is required' }, { status: 400 })
@@ -64,13 +71,33 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Email is already in use' }, { status: 409 })
     }
 
-    db.prepare('UPDATE users SET name = ?, email = ?, phone = ?, addresses = ? WHERE id = ?').run(
-      name,
-      email,
-      phone || null,
-      addresses.length > 0 ? JSON.stringify(addresses) : null,
-      sessionUser.id
-    )
+    if (profilePhoto !== undefined) {
+      const photoError = validateStaffPhotoDataUrl(profilePhoto)
+      if (photoError) {
+        return NextResponse.json({ error: photoError }, { status: 400 })
+      }
+    }
+
+    if (profilePhoto !== undefined) {
+      db.prepare(
+        'UPDATE users SET name = ?, email = ?, phone = ?, addresses = ?, profile_photo = ? WHERE id = ?'
+      ).run(
+        name,
+        email,
+        phone || null,
+        addresses.length > 0 ? JSON.stringify(addresses) : null,
+        profilePhoto,
+        sessionUser.id
+      )
+    } else {
+      db.prepare('UPDATE users SET name = ?, email = ?, phone = ?, addresses = ? WHERE id = ?').run(
+        name,
+        email,
+        phone || null,
+        addresses.length > 0 ? JSON.stringify(addresses) : null,
+        sessionUser.id
+      )
+    }
 
     const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(sessionUser.id) as DbUser
     return NextResponse.json({ user: dbUserToUser(updated) })

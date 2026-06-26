@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { AdminShell, type AdminTab } from '@/components/admin/AdminShell'
 import { AdminDashboard } from '@/components/admin/AdminDashboard'
@@ -27,8 +28,9 @@ import { UserAccessToggle } from '@/components/admin/UserAccessToggle'
 import { CustomerDetailsModal } from '@/components/admin/CustomerDetailsModal'
 import { OrderDetailsModal } from '@/components/admin/OrderDetailsModal'
 import { ProductImageModal } from '@/components/admin/ProductImageModal'
+import { ProductCertificationModal } from '@/components/admin/ProductCertificationModal'
 import { useApp } from '@/lib/context'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, getStoredToken } from '@/lib/api'
 import { formatPrice } from '@/lib/formatPrice'
 import {
   getDiscountPercent,
@@ -49,7 +51,39 @@ import {
   parsePermissions,
   type UserPermissions,
 } from '@/lib/permissions'
-import type { Product, Order, User, StaffRecord } from '@/lib/types'
+import type { Product, Order, User, StaffRecord, WarrantyInfo } from '@/lib/types'
+
+const WARRANTY_DURATION_OPTIONS = ['1 Year', '2 Years', '3 Years'] as const
+
+function defaultProductWarranty(): WarrantyInfo {
+  return {
+    duration: '2 Years',
+    type: 'Manufacturer Limited Warranty',
+    coverage: ['Manufacturing defects in materials and workmanship'],
+    exclusions: ['Physical damage', 'Unauthorized modifications'],
+    extendedAvailable: false,
+  }
+}
+
+function withWarrantyDuration(product: Partial<Product>, duration: string): Partial<Product> {
+  return {
+    ...product,
+    warranty: {
+      ...(product.warranty || defaultProductWarranty()),
+      duration,
+    },
+  }
+}
+
+function getWarrantyDuration(product: Partial<Product>): string {
+  const duration = product.warranty?.duration || '2 Years'
+  if (WARRANTY_DURATION_OPTIONS.includes(duration as (typeof WARRANTY_DURATION_OPTIONS)[number])) {
+    return duration
+  }
+  if (duration.includes('1')) return '1 Year'
+  if (duration.includes('3')) return '3 Years'
+  return '2 Years'
+}
 import type { ContactMessage } from '@/lib/contactMessages'
 import { usernameFromStaffName } from '@/lib/staffUser'
 import {
@@ -86,6 +120,7 @@ import {
   Activity,
   IndianRupee,
   RefreshCw,
+  ImageIcon,
 } from 'lucide-react'
 import styles from './page.module.css'
 
@@ -402,6 +437,11 @@ export default function AdminPage() {
 
   const [editProduct, setEditProduct] = useState<Partial<Product> | null>(null)
   const [newProduct, setNewProduct] = useState(false)
+  const [showCertModal, setShowCertModal] = useState(false)
+  const [certDraftImage, setCertDraftImage] = useState<string | null>(null)
+  const [imageUploading, setImageUploading] = useState(false)
+  const productImageInputRef = useRef<HTMLInputElement>(null)
+  const certificationImageInputRef = useRef<HTMLInputElement>(null)
   const [stockInput, setStockInput] = useState('')
   const [maxPriceInput, setMaxPriceInput] = useState('')
   const [discountedPriceInput, setDiscountedPriceInput] = useState('')
@@ -860,6 +900,8 @@ export default function AdminPage() {
 
   const openNewProduct = () => {
     setNewProduct(true)
+    setShowCertModal(false)
+    setCertDraftImage(null)
     setStockInput('0')
     setMaxPriceInput('0')
     setDiscountedPriceInput('0')
@@ -876,11 +918,14 @@ export default function AdminPage() {
       description: '',
       rating: 4.5,
       reviews: 0,
+      warranty: defaultProductWarranty(),
     })
   }
 
   const openEditProduct = (product: Product) => {
     setNewProduct(false)
+    setShowCertModal(false)
+    setCertDraftImage(null)
     setStockInput(String(product.stock ?? 0))
     setMaxPriceInput(String(getMaxPrice(product)))
     setDiscountedPriceInput(String(product.price ?? 0))
@@ -891,10 +936,74 @@ export default function AdminPage() {
   const closeProductEditor = () => {
     setEditProduct(null)
     setNewProduct(false)
+    setShowCertModal(false)
+    setCertDraftImage(null)
     setStockInput('')
     setMaxPriceInput('')
     setDiscountedPriceInput('')
     setDiscountInput('')
+  }
+
+  const uploadProductFile = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const token = getStoredToken()
+    const res = await fetch('/api/admin/products/upload', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    })
+    const data = (await res.json()) as { url?: string; error?: string }
+    if (!res.ok) throw new Error(data.error || 'Upload failed')
+    if (!data.url) throw new Error('Upload failed')
+    return data.url
+  }
+
+  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !editProduct) return
+
+    setImageUploading(true)
+    try {
+      const url = await uploadProductFile(file)
+      setEditProduct({
+        ...editProduct,
+        image: url,
+        images: [url, ...(editProduct.images || []).filter((img) => img !== url)],
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Image upload failed')
+    } finally {
+      e.target.value = ''
+      setImageUploading(false)
+    }
+  }
+
+  const handleCertificationImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setImageUploading(true)
+    try {
+      const url = await uploadProductFile(file)
+      setCertDraftImage(url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Certification upload failed')
+    } finally {
+      e.target.value = ''
+      setImageUploading(false)
+    }
+  }
+
+  const saveCertification = () => {
+    if (!editProduct || !certDraftImage) return
+    setEditProduct({ ...editProduct, certificationImage: certDraftImage })
+    setShowCertModal(false)
+  }
+
+  const closeCertificationModal = () => {
+    setShowCertModal(false)
+    setCertDraftImage(null)
   }
 
   const deleteProduct = async (id: string) => {
@@ -1227,12 +1336,38 @@ export default function AdminPage() {
                       />
                     </div>
                     <div>
-                      <label className={styles.formLabel}>Image URL</label>
-                      <input
-                        className={styles.formInput}
-                        value={editProduct.image || ''}
-                        onChange={(e) => setEditProduct({ ...editProduct, image: e.target.value })}
-                      />
+                      <span className={styles.formLabel}>Product Image</span>
+                      <div className={styles.imagePickerRow}>
+                        {editProduct.image && (
+                          <div className={styles.imageThumb}>
+                            <Image
+                              src={editProduct.image}
+                              alt={editProduct.name || 'Product'}
+                              width={48}
+                              height={48}
+                              className={styles.imageThumbImg}
+                              unoptimized
+                            />
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className={styles.imageIconBtn}
+                          onClick={() => productImageInputRef.current?.click()}
+                          disabled={imageUploading}
+                          title={imageUploading ? 'Uploading...' : 'Upload product image'}
+                          aria-label="Upload product image"
+                        >
+                          <ImageIcon className="w-5 h-5" />
+                        </button>
+                        <input
+                          ref={productImageInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className={styles.hiddenFileInput}
+                          onChange={handleProductImageUpload}
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="mb-3">
@@ -1244,6 +1379,42 @@ export default function AdminPage() {
                         setEditProduct({ ...editProduct, description: e.target.value })
                       }
                     />
+                  </div>
+                  <div className="mb-3">
+                    <span className={styles.formLabel}>Warranty Duration</span>
+                    <div className={styles.warrantyChecks}>
+                      {WARRANTY_DURATION_OPTIONS.map((option) => (
+                        <label key={option} className={styles.warrantyCheckItem}>
+                          <input
+                            type="checkbox"
+                            checked={getWarrantyDuration(editProduct) === option}
+                            onChange={() =>
+                              setEditProduct(withWarrantyDuration(editProduct, option))
+                            }
+                          />
+                          <span>{option}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <label className={styles.warrantyCheckItem}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(editProduct.certificationImage) || showCertModal}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setCertDraftImage(editProduct.certificationImage || null)
+                            setShowCertModal(true)
+                          } else {
+                            setEditProduct({ ...editProduct, certificationImage: undefined })
+                            setShowCertModal(false)
+                            setCertDraftImage(null)
+                          }
+                        }}
+                      />
+                      <span>Certification</span>
+                    </label>
                   </div>
                   <div className="flex gap-2">
                     <button type="button" className={`${styles.btn} ${styles.btnSuccess}`} onClick={saveProduct}>
@@ -1818,6 +1989,25 @@ export default function AdminPage() {
           manufacturingId={previewProduct.manufacturingId}
           onClose={() => setPreviewProduct(null)}
         />
+      )}
+
+      {showCertModal && (
+        <>
+          <ProductCertificationModal
+            draftImage={certDraftImage}
+            uploading={imageUploading}
+            onUploadClick={() => certificationImageInputRef.current?.click()}
+            onSave={saveCertification}
+            onClose={closeCertificationModal}
+          />
+          <input
+            ref={certificationImageInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className={styles.hiddenFileInput}
+            onChange={handleCertificationImageUpload}
+          />
+        </>
       )}
 
       {activeNotification && user?.role !== 'admin' && (

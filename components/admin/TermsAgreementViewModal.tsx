@@ -13,9 +13,14 @@ type PreviewData =
 type TermsAgreementViewModalProps = {
   onClose: () => void
   onError?: (message: string) => void
+  previewUrl?: string
 }
 
-export function TermsAgreementViewModal({ onClose, onError }: TermsAgreementViewModalProps) {
+export function TermsAgreementViewModal({
+  onClose,
+  onError,
+  previewUrl = '/api/admin/terms-agreement/preview',
+}: TermsAgreementViewModalProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<PreviewData | null>(null)
@@ -32,14 +37,14 @@ export function TermsAgreementViewModal({ onClose, onError }: TermsAgreementView
         const token = getStoredToken()
         const headers = token ? { Authorization: `Bearer ${token}` } : {}
 
-        const res = await fetch('/api/admin/terms-agreement/preview', { headers })
+        const res = await fetch(previewUrl, { headers })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Failed to load document')
 
         if (!active) return
 
         if (data.format === 'pdf') {
-          const streamRes = await fetch('/api/admin/terms-agreement/preview?stream=1', { headers })
+          const streamRes = await fetch(`${previewUrl}?stream=1`, { headers })
           if (!streamRes.ok) throw new Error('Failed to load PDF preview')
           const blob = await streamRes.blob()
           objectUrl = URL.createObjectURL(blob)
@@ -68,7 +73,7 @@ export function TermsAgreementViewModal({ onClose, onError }: TermsAgreementView
       active = false
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [onError])
+  }, [onError, previewUrl])
 
   useEffect(() => {
     return () => {

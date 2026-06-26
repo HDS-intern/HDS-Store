@@ -7,6 +7,7 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { ProductSlideshow } from '@/components/ProductSlideshow'
 import { HomeOfferPopup } from '@/components/HomeOfferPopup'
+import { HomeBufferButton } from '@/components/HomeBufferButton'
 import { ShoppingCart, Shield, Zap, Award } from 'lucide-react'
 import { useApp } from '@/lib/context'
 import { formatPrice } from '@/lib/formatPrice'
@@ -55,6 +56,7 @@ export default function Home() {
   return (
     <div className={`${styles.page} flex flex-col min-h-screen`}>
       <Header />
+      <HomeBufferButton />
 
       <ProductSlideshow products={products} slides={template.slides} />
 

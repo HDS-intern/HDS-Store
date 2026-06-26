@@ -7,22 +7,17 @@ import {
 
 export const runtime = 'nodejs'
 
-function assertAdmin(request: Request) {
-  requireRole(getUserBySession(getTokenFromRequest(request)), ['admin'])
-}
-
 export async function GET(request: Request) {
   try {
-    assertAdmin(request)
-    const { searchParams } = new URL(request.url)
-    const stream = searchParams.get('stream') === '1'
+    requireRole(getUserBySession(getTokenFromRequest(request)), ['admin', 'staff', 'customer'])
 
-    if (stream) {
-      const streamResponse = getTermsAgreementStreamResponse()
-      return new NextResponse(streamResponse.body, {
+    const { searchParams } = new URL(request.url)
+    if (searchParams.get('stream') === '1') {
+      const stream = getTermsAgreementStreamResponse()
+      return new NextResponse(stream.body, {
         headers: {
-          'Content-Type': streamResponse.contentType,
-          'Content-Disposition': streamResponse.disposition,
+          'Content-Type': stream.contentType,
+          'Content-Disposition': stream.disposition,
         },
       })
     }

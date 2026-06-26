@@ -132,6 +132,10 @@ function migrateSchema(db: Database.Database) {
   if (!userCols.some((c) => c.name === 'access_locked')) {
     db.exec('ALTER TABLE users ADD COLUMN access_locked INTEGER NOT NULL DEFAULT 0')
   }
+  userCols = db.prepare('PRAGMA table_info(users)').all() as { name: string }[]
+  if (!userCols.some((c) => c.name === 'profile_photo')) {
+    db.exec('ALTER TABLE users ADD COLUMN profile_photo TEXT')
+  }
 
   let orderCols = db.prepare('PRAGMA table_info(orders)').all() as { name: string }[]
   if (!orderCols.some((c) => c.name === 'returned_qty')) {
@@ -472,6 +476,7 @@ export type DbUser = {
   permissions: string | null
   addresses: string | null
   access_locked?: number | null
+  profile_photo?: string | null
   created_at: string
 }
 
@@ -506,6 +511,7 @@ export function dbUserToUser(row: DbUser): User {
     zipCode: primary?.zipCode,
     permissions: parsePermissions(row.permissions, row.role),
     accessLocked: Boolean(row.access_locked),
+    profilePhoto: row.profile_photo ?? undefined,
   }
 }
 

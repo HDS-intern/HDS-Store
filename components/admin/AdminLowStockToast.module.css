@@ -1,0 +1,118 @@
+.toast {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 110;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: min(380px, calc(100vw - 2.5rem));
+  padding: 1rem 1.125rem;
+  border-radius: 0.875rem;
+  background: var(--card);
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  color: var(--foreground);
+  animation: slideIn 0.3s ease;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.toast:hover {
+  border-color: rgba(249, 115, 22, 0.7);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.toast:focus-visible {
+  outline: 2px solid rgba(249, 115, 22, 0.8);
+  outline-offset: 2px;
+}
+
+.iconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.625rem;
+  flex-shrink: 0;
+  background: rgba(249, 115, 22, 0.18);
+  color: #fdba74;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--foreground);
+  margin: 0 0 0.25rem;
+}
+
+.message {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  margin: 0 0 0.625rem;
+  line-height: 1.45;
+}
+
+.meta {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+.meta strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.productList {
+  margin: 0;
+  padding-left: 1rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+
+.queueHint {
+  margin: 0.5rem 0 0;
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+
+.closeBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: 0;
+}
+
+.closeBtn:hover {
+  color: var(--foreground);
+  background: rgba(148, 163, 184, 0.12);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useLayoutEffect, type ReactNode, type RefObject } from 'react'
+import { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -27,6 +27,7 @@ import {
 } from '@/components/admin/AdminContactMessageToast'
 import { AdminOrderNotificationPopup } from '@/components/admin/AdminOrderNotificationPopup'
 import { AdminOrderNotificationToast } from '@/components/admin/AdminOrderNotificationToast'
+import { AdminLowStockToast } from '@/components/admin/AdminLowStockToast'
 import { AdminUpdateToast, type AdminUpdateToastItem } from '@/components/admin/AdminUpdateToast'
 import { AdminErrorToast } from '@/components/admin/AdminErrorToast'
 import { AdminTableColumnHeader } from '@/components/admin/AdminTableColumnHeader'
@@ -58,6 +59,12 @@ import {
   syncPricingFields,
   type PricingField,
 } from '@/lib/productPricing'
+import {
+  detectLowStockNotifications,
+  getLowStockProducts,
+  isLowStockProduct,
+  type AdminLowStockNotification,
+} from '@/lib/lowStockAlerts'
 import {
   certDraftEntriesToProductCertifications,
   certificationTypesLabel,
@@ -646,6 +653,7 @@ export default function AdminPage() {
   const productImageInputRef = useRef<HTMLInputElement>(null)
   const editCertDocumentInputRef = useRef<HTMLInputElement>(null)
   const [stockInput, setStockInput] = useState('')
+  const [minStockAlertInput, setMinStockAlertInput] = useState('')
   const [maxPriceInput, setMaxPriceInput] = useState('')
   const [discountedPriceInput, setDiscountedPriceInput] = useState('')
   const [discountInput, setDiscountInput] = useState('')
@@ -721,6 +729,10 @@ export default function AdminPage() {
   const [activeContactToast, setActiveContactToast] = useState<ContactMessageNotification | null>(
     null
   )
+  const [lowStockToastQueue, setLowStockToastQueue] = useState<AdminLowStockNotification[]>([])
+  const [activeLowStockToast, setActiveLowStockToast] = useState<AdminLowStockNotification | null>(
+    null
+  )
 
   const ordersSnapshotRef = useRef<Map<string, OrderSnapshot>>(new Map())
   const snapshotReadyRef = useRef(false)
@@ -728,6 +740,8 @@ export default function AdminPage() {
   const bulkSnapshotReadyRef = useRef(false)
   const contactSnapshotRef = useRef<Set<string>>(new Set())
   const contactSnapshotReadyRef = useRef(false)
+  const lowStockSnapshotRef = useRef<Set<string>>(new Set())
+  const lowStockSnapshotReadyRef = useRef(false)
 
   const enqueueNotifications = useCallback((items: AdminOrderNotification[]) => {
     if (items.length === 0) return
@@ -742,6 +756,22 @@ export default function AdminPage() {
   const enqueueContactToasts = useCallback((items: ContactMessageNotification[]) => {
     if (items.length === 0) return
     setContactToastQueue((prev) => [...prev, ...items])
+  }, [])
+
+  const enqueueLowStockToasts = useCallback((items: AdminLowStockNotification[]) => {
+    if (items.length === 0) return
+    setLowStockToastQueue((prev) => [...prev, ...items])
+  }, [])
+
+  const syncLowStockSnapshot = useCallback((list: typeof products, emitNotifications: boolean) => {
+    const { notifications, next } = detectLowStockNotifications(
+      lowStockSnapshotRef.current,
+      list,
+      emitNotifications && lowStockSnapshotReadyRef.current
+    )
+    lowStockSnapshotRef.current = next
+    lowStockSnapshotReadyRef.current = true
+    return notifications
   }, [])
 
   const syncOrderSnapshot = useCallback(
@@ -970,6 +1000,13 @@ export default function AdminPage() {
   }, [activeContactToast, contactToastQueue])
 
   useEffect(() => {
+    if (!activeLowStockToast && lowStockToastQueue.length > 0) {
+      setActiveLowStockToast(lowStockToastQueue[0])
+      setLowStockToastQueue((prev) => prev.slice(1))
+    }
+  }, [activeLowStockToast, lowStockToastQueue])
+
+  useEffect(() => {
     if (!activeUpdateToast && updateToastQueue.length > 0) {
       setActiveUpdateToast(updateToastQueue[0])
       setUpdateToastQueue((prev) => prev.slice(1))
@@ -992,6 +1029,30 @@ export default function AdminPage() {
         hasPermission(user, 'payments_view') ||
         hasPermission(user, 'payments_manage'))
   )
+
+  const canViewInventory = Boolean(
+    user &&
+      (hasPermission(user, 'inventory_view') || hasPermission(user, 'inventory_manage'))
+  )
+
+  const lowStockProducts = useMemo(() => getLowStockProducts(products), [products])
+  const lowStockCount = lowStockProducts.length
+
+  useEffect(() => {
+    if (!canViewInventory) return
+
+    if (!lowStockSnapshotReadyRef.current) {
+      syncLowStockSnapshot(products, false)
+      return
+    }
+
+    if (user?.role !== 'admin') return
+
+    const notifications = syncLowStockSnapshot(products, true)
+    if (tab !== 'inventory' && notifications.length > 0) {
+      enqueueLowStockToasts(notifications)
+    }
+  }, [products, tab, canViewInventory, user?.role, syncLowStockSnapshot, enqueueLowStockToasts])
 
   useEffect(() => {
     if (authLoading || !user || !canViewOrders) return
@@ -1101,6 +1162,8 @@ export default function AdminPage() {
       return
     }
     const stock = stockInput === '' ? 0 : Math.max(0, parseInt(stockInput, 10) || 0)
+    const minStockQty =
+      minStockAlertInput === '' ? 0 : Math.max(0, parseInt(minStockAlertInput, 10) || 0)
     const price = discountedPriceInput === '' ? 0 : Math.max(0, parseInt(discountedPriceInput, 10) || 0)
     const maxPrice = maxPriceInput === '' ? price : Math.max(0, parseInt(maxPriceInput, 10) || 0)
     const originalPrice = maxPrice > price ? maxPrice : undefined
@@ -1115,6 +1178,7 @@ export default function AdminPage() {
       specs: {
         ...(editProduct.specs || {}),
         'Certification Type': editCertificationType || '—',
+        'Min Stock Qty': String(minStockQty),
       },
     }
     try {
@@ -1137,6 +1201,7 @@ export default function AdminPage() {
       setEditCertificationLogo('')
       setShowEditCertTypeManager(false)
       setStockInput('')
+      setMinStockAlertInput('')
       setMaxPriceInput('')
       setDiscountedPriceInput('')
       setDiscountInput('')
@@ -1161,6 +1226,7 @@ export default function AdminPage() {
     setEditCertificationType(certType)
     setShowEditCertTypeManager(false)
     setStockInput(String(product.stock ?? 0))
+    setMinStockAlertInput(String(getMinStockAlert(product)))
     setMaxPriceInput(String(getMaxPrice(product)))
     setDiscountedPriceInput(String(product.price ?? 0))
     setDiscountInput(String(getDiscountPercent(product)))
@@ -1179,6 +1245,7 @@ export default function AdminPage() {
     setEditCertificationLogo('')
     setShowEditCertTypeManager(false)
     setStockInput('')
+    setMinStockAlertInput('')
     setMaxPriceInput('')
     setDiscountedPriceInput('')
     setDiscountInput('')
@@ -1623,6 +1690,7 @@ export default function AdminPage() {
     label: string
     icon: typeof Package
     badgeCount?: number
+    alertCount?: number
   }
 
   const navItems: AdminNavItem[] = (
@@ -1658,6 +1726,9 @@ export default function AdminPage() {
     .map((item) => {
       if (item.id === 'messages') return { ...item, badgeCount: unreadContactCount }
       if (item.id === 'customer-chat') return { ...item, badgeCount: unreadCustomerChatCount }
+      if (item.id === 'inventory' && user?.role === 'admin') {
+        return { ...item, alertCount: lowStockCount }
+      }
       return item
     })
 
@@ -1669,6 +1740,8 @@ export default function AdminPage() {
 
   const dismissContactToast = () => setActiveContactToast(null)
 
+  const dismissLowStockToast = () => setActiveLowStockToast(null)
+
   const viewOrderFromNotification = () => {
     setActiveNotification(null)
     setActiveToastNotification(null)
@@ -1678,6 +1751,11 @@ export default function AdminPage() {
   const viewMessagesFromNotification = () => {
     setActiveContactToast(null)
     setTab('messages')
+  }
+
+  const viewInventoryFromNotification = () => {
+    setActiveLowStockToast(null)
+    setTab('inventory')
   }
 
   return (
@@ -1760,8 +1838,9 @@ export default function AdminPage() {
                       const discount = getDiscountPercent(p)
                       const minStockAlert = getMinStockAlert(p)
                       const productCertifications = getProductCertifications(p)
+                      const lowStock = isLowStockProduct(p)
                       return (
-                      <tr key={p.id}>
+                      <tr key={p.id} className={lowStock ? styles.inventoryRowLowStock : undefined}>
                         <td>
                           <button
                             type="button"
@@ -2525,6 +2604,27 @@ export default function AdminPage() {
                 />
               </div>
               <div>
+                <label className={styles.formLabel}>Min Stock Alert</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className={styles.formInput}
+                  value={minStockAlertInput}
+                  placeholder="0"
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    if (raw === '' || /^\d+$/.test(raw)) {
+                      setMinStockAlertInput(raw)
+                    }
+                  }}
+                  onBlur={() => {
+                    const parsed =
+                      minStockAlertInput === '' ? 0 : Math.max(0, parseInt(minStockAlertInput, 10) || 0)
+                    setMinStockAlertInput(String(parsed))
+                  }}
+                />
+              </div>
+              <div>
                 <label className={styles.formLabel}>Category</label>
                 <input
                   className={styles.formInput}
@@ -2714,6 +2814,15 @@ export default function AdminPage() {
           queueCount={contactToastQueue.length}
           onDismiss={dismissContactToast}
           onViewMessages={viewMessagesFromNotification}
+        />
+      )}
+
+      {activeLowStockToast && user?.role === 'admin' && (
+        <AdminLowStockToast
+          notification={activeLowStockToast}
+          queueCount={lowStockToastQueue.length}
+          onDismiss={dismissLowStockToast}
+          onViewInventory={viewInventoryFromNotification}
         />
       )}
 

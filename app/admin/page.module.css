@@ -287,6 +287,21 @@
   font-size: 0.8125rem;
 }
 
+.inventoryRowLowStock {
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.inventoryRowLowStock td {
+  box-shadow: inset 0 1px 0 rgba(249, 115, 22, 0.18), inset 0 -1px 0 rgba(249, 115, 22, 0.18);
+}
+
+.inventoryRowLowStock td:first-child {
+  box-shadow:
+    inset 3px 0 0 #f97316,
+    inset 0 1px 0 rgba(249, 115, 22, 0.18),
+    inset 0 -1px 0 rgba(249, 115, 22, 0.18);
+}
+
 .inventoryTable th,
 .inventoryTable td {
   padding: 0.625rem 0.5rem;

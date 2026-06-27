@@ -25,6 +25,7 @@ type NavItem = {
   icon: LucideIcon
   adminOnly?: boolean
   badgeCount?: number
+  alertCount?: number
 }
 
 type AdminShellProps = {
@@ -84,6 +85,14 @@ export function AdminShell({
                   className={`${styles.navBtn} ${tab === item.id ? styles.navBtnActive : ''}`}
                 >
                   <Icon className="w-4 h-4" />
+                  {item.alertCount != null && item.alertCount > 0 && (
+                    <span
+                      className={styles.navAlertDot}
+                      aria-label={`${item.alertCount} stock alert${item.alertCount > 1 ? 's' : ''}`}
+                    >
+                      {item.alertCount > 99 ? '99+' : item.alertCount}
+                    </span>
+                  )}
                   {item.badgeCount != null && item.badgeCount > 0 && (
                     <span className={styles.navBadge} aria-label={`${item.badgeCount} unread messages`}>
                       <Bell className="w-3 h-3" />

@@ -118,6 +118,7 @@
 }
 
 .navBtn {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.625rem;
@@ -171,6 +172,27 @@
   font-weight: 700;
   line-height: 1;
   flex-shrink: 0;
+}
+
+.navAlertDot {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.45rem;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--card);
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.35);
 }
 
 .storeLink {

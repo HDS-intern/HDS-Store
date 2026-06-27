@@ -176,8 +176,9 @@
 
 .navAlertDot {
   position: absolute;
-  top: 0.3rem;
+  top: 50%;
   right: 0.45rem;
+  transform: translateY(-50%);
   min-width: 1.125rem;
   height: 1.125rem;
   padding: 0 0.25rem;

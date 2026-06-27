@@ -8,8 +8,10 @@ import { AdminShell, type AdminTab } from '@/components/admin/AdminShell'
 import { AdminSlideUp } from '@/components/admin/AdminSlideUp'
 import { AdminDashboard } from '@/components/admin/AdminDashboard'
 import { startAdminEntranceOnce, completeAdminEntrance } from '@/lib/adminEntrance'
+import { CertificationPanel } from '@/components/admin/CertificationPanel'
 import { BulkOrderTemplatePanel } from '@/components/admin/BulkOrderTemplatePanel'
 import { TermsAgreementTemplatePanel } from '@/components/admin/TermsAgreementTemplatePanel'
+import { InvoiceDcTemplatePanel } from '@/components/admin/InvoiceDcTemplatePanel'
 import { MainTemplatePanel } from '@/components/admin/MainTemplatePanel'
 import { StaffRecordsPanel } from '@/components/admin/StaffRecordsPanel'
 import { UserPermissionsForm } from '@/components/admin/UserPermissionsForm'
@@ -37,12 +39,18 @@ import {
   createEmptyProductDraftRow,
   type ProductDraftRow,
 } from '@/components/admin/ProductBulkEntryModal'
+import {
+  ProductBulkImagesModal,
+  type BulkProductImageDraft,
+} from '@/components/admin/ProductBulkImagesModal'
+import { validateProductGalleryFile } from '@/lib/productGalleryUpload'
 import { useApp } from '@/lib/context'
 import { apiFetch, getStoredToken } from '@/lib/api'
 import { formatPrice } from '@/lib/formatPrice'
 import {
   getDiscountPercent,
   getMaxPrice,
+  getMinStockAlert,
   syncPricingFields,
   type PricingField,
 } from '@/lib/productPricing'
@@ -52,6 +60,18 @@ import {
   type AdminOrderNotification,
   type OrderSnapshot,
 } from '@/lib/adminNotifications'
+import {
+  buildCustomRoleValue,
+  customRoleIdFromValue,
+  isCustomRoleValue,
+  loadCustomRoles,
+  loadHiddenBuiltInRoles,
+  newCustomRoleDraft,
+  resolveApiRole,
+  saveCustomRoles,
+  saveHiddenBuiltInRoles,
+  type CustomRole,
+} from '@/lib/customRoles'
 import {
   hasPermission,
   permissionsForRole,
@@ -108,11 +128,13 @@ import {
   EyeOff,
   ClipboardList,
   FileSpreadsheet,
+  Award,
   FileText,
   Ticket,
   MessageCircle,
   ImageIcon,
   X,
+  Trash2,
 } from 'lucide-react'
 import styles from './page.module.css'
 
@@ -211,16 +233,21 @@ function SelectMenuPortal({
       <button
         type="button"
         className={styles.selectBackdrop}
-        onClick={onClose}
+        onClick={(e) => {
+          e.stopPropagation()
+          onClose()
+        }}
         aria-label="Close menu"
       />
       <ul
         className={`${styles.selectMenu} ${styles.selectMenuFixed} ${scrollable ? styles.selectMenuScroll : ''}`}
         role="listbox"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
         style={{
           top: position.top,
           left: position.left,
-          width: position.width,
+          width: Math.max(position.width, 240),
         }}
       >
         {children}
@@ -233,14 +260,98 @@ function SelectMenuPortal({
 function RoleDropdown({
   value,
   onChange,
+  customRoles,
+  onCustomRolesChange,
+  hiddenBuiltInRoles,
+  onHiddenBuiltInRolesChange,
 }: {
   value: string
-  onChange: (role: string) => void
+  onChange: (role: string, permissions: UserPermissions) => void
+  customRoles: CustomRole[]
+  onCustomRolesChange: (roles: CustomRole[]) => void
+  hiddenBuiltInRoles: string[]
+  onHiddenBuiltInRolesChange: (roles: string[]) => void
 }) {
   const [open, setOpen] = useState(false)
+  const [creatingRole, setCreatingRole] = useState(false)
+  const [draftRoleName, setDraftRoleName] = useState('')
+  const [draftRoleDesc, setDraftRoleDesc] = useState('')
   const triggerRef = useRef<HTMLButtonElement>(null)
   const position = useSelectMenuPosition(open, triggerRef)
-  const selected = STAFF_ROLES.find((r) => r.value === value) ?? STAFF_ROLES[0]
+
+  const visibleBuiltInRoles = STAFF_ROLES.filter(
+    (role) => role.value === 'admin' || !hiddenBuiltInRoles.includes(role.value)
+  )
+
+  const builtIn = STAFF_ROLES.find((r) => r.value === value)
+  const custom = isCustomRoleValue(value)
+    ? customRoles.find((r) => r.id === customRoleIdFromValue(value))
+    : undefined
+  const selected = custom
+    ? { label: custom.label, description: custom.description }
+    : builtIn ?? visibleBuiltInRoles[0] ?? STAFF_ROLES[0]
+
+  const closeMenu = () => {
+    setOpen(false)
+    setCreatingRole(false)
+    setDraftRoleName('')
+    setDraftRoleDesc('')
+  }
+
+  const pickFallbackRole = (
+    nextHidden: string[],
+    nextCustom: CustomRole[]
+  ): { role: string; permissions: UserPermissions } => {
+    const visible = STAFF_ROLES.filter(
+      (role) => role.value === 'admin' || !nextHidden.includes(role.value)
+    )
+    if (visible.length > 0) {
+      const first = visible[0]
+      return { role: first.value, permissions: permissionsForRole(first.value) }
+    }
+    if (nextCustom.length > 0) {
+      return {
+        role: buildCustomRoleValue(nextCustom[0].id),
+        permissions: nextCustom[0].permissions,
+      }
+    }
+    return { role: 'admin', permissions: permissionsForRole('admin') }
+  }
+
+  const handleDeleteBuiltIn = (roleValue: string, label: string) => {
+    if (roleValue === 'admin') return
+    if (!window.confirm(`Remove "${label}" role from the list?`)) return
+    const nextHidden = [...hiddenBuiltInRoles, roleValue]
+    onHiddenBuiltInRolesChange(nextHidden)
+    saveHiddenBuiltInRoles(nextHidden)
+    if (value === roleValue) {
+      const fallback = pickFallbackRole(nextHidden, customRoles)
+      onChange(fallback.role, fallback.permissions)
+    }
+  }
+
+  const handleDeleteCustom = (role: CustomRole) => {
+    if (!window.confirm(`Delete "${role.label}" role?`)) return
+    const nextCustom = customRoles.filter((r) => r.id !== role.id)
+    onCustomRolesChange(nextCustom)
+    saveCustomRoles(nextCustom)
+    const roleValue = buildCustomRoleValue(role.id)
+    if (value === roleValue) {
+      const fallback = pickFallbackRole(hiddenBuiltInRoles, nextCustom)
+      onChange(fallback.role, fallback.permissions)
+    }
+  }
+
+  const handleCreateRole = () => {
+    const label = draftRoleName.trim()
+    if (!label) return
+    const role = newCustomRoleDraft(label, draftRoleDesc)
+    const next = [...customRoles, role]
+    onCustomRolesChange(next)
+    saveCustomRoles(next)
+    onChange(buildCustomRoleValue(role.id), role.permissions)
+    closeMenu()
+  }
 
   return (
     <div className={styles.selectWrap}>
@@ -248,7 +359,10 @@ function RoleDropdown({
         ref={triggerRef}
         type="button"
         className={`${styles.selectTrigger} ${open ? styles.selectTriggerOpen : ''}`}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={(e) => {
+          e.stopPropagation()
+          setOpen((prev) => !prev)
+        }}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -259,15 +373,15 @@ function RoleDropdown({
         <ChevronDown className={`${styles.selectChevron} ${open ? styles.selectChevronOpen : ''}`} />
       </button>
 
-      <SelectMenuPortal open={open} onClose={() => setOpen(false)} position={position}>
-        {STAFF_ROLES.map((role) => (
-          <li key={role.value} role="option" aria-selected={value === role.value}>
+      <SelectMenuPortal open={open} onClose={closeMenu} position={position}>
+        {visibleBuiltInRoles.map((role) => (
+          <li key={role.value} className={styles.selectOptionRow} role="option" aria-selected={value === role.value}>
             <button
               type="button"
               className={`${styles.selectOption} ${value === role.value ? styles.selectOptionActive : ''}`}
               onClick={() => {
-                onChange(role.value)
-                setOpen(false)
+                onChange(role.value, permissionsForRole(role.value))
+                closeMenu()
               }}
             >
               <span>
@@ -276,8 +390,110 @@ function RoleDropdown({
               </span>
               {value === role.value && <Check className={styles.selectCheck} />}
             </button>
+            {role.value !== 'admin' && (
+              <button
+                type="button"
+                className={styles.selectRoleDeleteBtn}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDeleteBuiltIn(role.value, role.label)
+                }}
+                aria-label={`Delete ${role.label} role`}
+                title={`Delete ${role.label} role`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </li>
         ))}
+
+        {customRoles.map((role) => {
+          const roleValue = buildCustomRoleValue(role.id)
+          return (
+            <li key={role.id} className={styles.selectOptionRow} role="option" aria-selected={value === roleValue}>
+              <button
+                type="button"
+                className={`${styles.selectOption} ${value === roleValue ? styles.selectOptionActive : ''}`}
+                onClick={() => {
+                  onChange(roleValue, role.permissions)
+                  closeMenu()
+                }}
+              >
+                <span>
+                  <span className={styles.selectOptionLabel}>{role.label}</span>
+                  <span className={styles.selectOptionHint}>{role.description}</span>
+                </span>
+                {value === roleValue && <Check className={styles.selectCheck} />}
+              </button>
+              <button
+                type="button"
+                className={styles.selectRoleDeleteBtn}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDeleteCustom(role)
+                }}
+                aria-label={`Delete ${role.label} role`}
+                title={`Delete ${role.label} role`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </li>
+          )
+        })}
+
+        <li className={styles.selectCreateDivider} aria-hidden="true" />
+
+        {creatingRole ? (
+          <li className={styles.selectCreateRoleForm}>
+            <label htmlFor="new-role-name">Role name</label>
+            <input
+              id="new-role-name"
+              value={draftRoleName}
+              onChange={(e) => setDraftRoleName(e.target.value)}
+              placeholder="e.g. Inventory Manager"
+              autoFocus
+            />
+            <label htmlFor="new-role-desc">Description</label>
+            <input
+              id="new-role-desc"
+              value={draftRoleDesc}
+              onChange={(e) => setDraftRoleDesc(e.target.value)}
+              placeholder="Short summary of access"
+            />
+            <div className={styles.selectCreateRoleActions}>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={handleCreateRole}
+                disabled={!draftRoleName.trim()}
+              >
+                Save Role
+              </button>
+              <button
+                type="button"
+                className={styles.btn}
+                onClick={() => {
+                  setCreatingRole(false)
+                  setDraftRoleName('')
+                  setDraftRoleDesc('')
+                }}
+              >
+                Back
+              </button>
+            </div>
+          </li>
+        ) : (
+          <li>
+            <button
+              type="button"
+              className={styles.selectCreateRoleBtn}
+              onClick={() => setCreatingRole(true)}
+            >
+              <Plus className="w-4 h-4" />
+              Create new role
+            </button>
+          </li>
+        )}
       </SelectMenuPortal>
     </div>
   )
@@ -395,6 +611,8 @@ export default function AdminPage() {
   const [editProduct, setEditProduct] = useState<Partial<Product> | null>(null)
   const [newProduct, setNewProduct] = useState(false)
   const [productDraftRows, setProductDraftRows] = useState<ProductDraftRow[] | null>(null)
+  const [bulkImageDrafts, setBulkImageDrafts] = useState<BulkProductImageDraft[] | null>(null)
+  const [bulkImagesUploadingRowId, setBulkImagesUploadingRowId] = useState<string | null>(null)
   const [bulkSaving, setBulkSaving] = useState(false)
   const [showCertModal, setShowCertModal] = useState(false)
   const [certDraftImage, setCertDraftImage] = useState<string | null>(null)
@@ -440,6 +658,8 @@ export default function AdminPage() {
   const [availableStaff, setAvailableStaff] = useState<StaffRecord[]>([])
   const [showNewUserPassword, setShowNewUserPassword] = useState(false)
   const [showCreateUserForm, setShowCreateUserForm] = useState(false)
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([])
+  const [hiddenBuiltInRoles, setHiddenBuiltInRoles] = useState<string[]>([])
   const [accessUpdatingId, setAccessUpdatingId] = useState<string | null>(null)
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
   const [editingAccess, setEditingAccess] = useState<{
@@ -644,6 +864,11 @@ export default function AdminPage() {
       setAvailableStaff([])
     }
   }, [user])
+
+  useEffect(() => {
+    setCustomRoles(loadCustomRoles())
+    setHiddenBuiltInRoles(loadHiddenBuiltInRoles())
+  }, [])
 
   useEffect(() => {
     if (authLoading) return
@@ -881,6 +1106,8 @@ export default function AdminPage() {
     setEditProduct(null)
     setNewProduct(false)
     setProductDraftRows(null)
+    setBulkImageDrafts(null)
+    setBulkImagesUploadingRowId(null)
     setBulkSaving(false)
     setShowCertModal(false)
     setCertDraftImage(null)
@@ -952,43 +1179,139 @@ export default function AdminPage() {
     setCertDraftImage(null)
   }
 
-  const handleBulkRowImageUpload = async (rowId: string, file: File) => {
+  const uploadCertificationDocument = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('kind', 'doc')
+    const token = getStoredToken()
+    const res = await fetch('/api/admin/certifications/upload', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    })
+    const data = (await res.json()) as { url?: string; error?: string }
+    if (!res.ok) throw new Error(data.error || 'Upload failed')
+    if (!data.url) throw new Error('Upload failed')
+    return data.url
+  }
+
+  const handleBulkCertDocumentUpload = async (rowId: string, file: File) => {
     setImageUploading(true)
     try {
-      const url = await uploadProductFile(file)
-      setProductDraftRows((prev) =>
-        prev?.map((row) => (row.id === rowId ? { ...row, image: url } : row)) ?? null
+      const url = await uploadCertificationDocument(file)
+      setProductDraftRows(
+        (prev) =>
+          prev?.map((row) =>
+            row.id === rowId ? { ...row, certificationDocument: url } : row
+          ) ?? null
       )
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Image upload failed')
+      setError(err instanceof Error ? err.message : 'Certificate upload failed')
     } finally {
       setImageUploading(false)
     }
   }
 
-  const saveBulkProducts = async () => {
+  const proceedToBulkImages = () => {
     if (!productDraftRows?.length) return
 
-    for (const row of productDraftRows) {
+    for (let i = 0; i < productDraftRows.length; i++) {
+      const row = productDraftRows[i]
+      const rowLabel = `Row ${i + 1}`
+
       if (!row.modelId.trim()) {
-        setError(`Row ${productDraftRows.indexOf(row) + 1}: SKU ID is required`)
+        setError(`${rowLabel}: SKU ID is required`)
         return
       }
       if (!row.manufacturingId.trim()) {
-        setError(`Row ${productDraftRows.indexOf(row) + 1}: Manufacturing ID is required`)
+        setError(`${rowLabel}: MFG ID is required`)
+        return
+      }
+      if (row.stock === '') {
+        setError(`${rowLabel}: Total qty is required`)
+        return
+      }
+      if (row.minStockQty === '') {
+        setError(`${rowLabel}: Min stock qty is required`)
+        return
+      }
+      if (row.basePrice === '') {
+        setError(`${rowLabel}: Base price is required`)
+        return
+      }
+      if (row.mrp === '') {
+        setError(`${rowLabel}: MRP is required`)
+        return
+      }
+      if (!row.name.trim()) {
+        setError(`${rowLabel}: Product name is required`)
+        return
+      }
+      if (!row.specification.trim()) {
+        setError(`${rowLabel}: Specification is required`)
         return
       }
     }
+
+    setError('')
+    setBulkImageDrafts(
+      productDraftRows.map((row) => ({
+        rowId: row.id,
+        modelId: row.modelId.trim(),
+        manufacturingId: row.manufacturingId.trim(),
+        name: row.name.trim(),
+        imageUrls: [],
+      }))
+    )
+  }
+
+  const handleBulkGalleryUpload = async (rowId: string, files: File[]) => {
+    setBulkImagesUploadingRowId(rowId)
+    try {
+      const urls: string[] = []
+      for (const file of files) {
+        const validationError = validateProductGalleryFile(file)
+        if (validationError) {
+          setError(validationError)
+          return
+        }
+        const url = await uploadProductFile(file)
+        urls.push(url)
+      }
+      setBulkImageDrafts(
+        (prev) =>
+          prev?.map((draft) =>
+            draft.rowId === rowId ? { ...draft, imageUrls: [...draft.imageUrls, ...urls] } : draft
+          ) ?? null
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Image upload failed')
+    } finally {
+      setBulkImagesUploadingRowId(null)
+    }
+  }
+
+  const finalizeBulkProducts = async () => {
+    if (!productDraftRows?.length || !bulkImageDrafts?.length) return
 
     setBulkSaving(true)
     setError('')
     try {
       for (const row of productDraftRows) {
+        const imagesDraft = bulkImageDrafts.find((draft) => draft.rowId === row.id)
+        const gallery = imagesDraft?.imageUrls ?? []
+        const defaultImage = '/images/drone-sentinel-pro.png'
+        const primaryImage = gallery[0] || defaultImage
+        const allImages = gallery.length > 0 ? gallery : [defaultImage]
         const stock = row.stock === '' ? 0 : Math.max(0, parseInt(row.stock, 10) || 0)
+        const minStockQty =
+          row.minStockQty === '' ? 0 : Math.max(0, parseInt(row.minStockQty, 10) || 0)
+        const basePrice =
+          row.basePrice === '' ? 0 : Math.max(0, parseInt(row.basePrice, 10) || 0)
         const price =
-          row.discountedPrice === '' ? 0 : Math.max(0, parseInt(row.discountedPrice, 10) || 0)
-        const maxPrice = row.maxPrice === '' ? price : Math.max(0, parseInt(row.maxPrice, 10) || 0)
-        const originalPrice = maxPrice > price ? maxPrice : undefined
+          row.finalPrice === '' ? 0 : Math.max(0, parseInt(row.finalPrice, 10) || 0)
+        const mrp = row.mrp === '' ? price : Math.max(0, parseInt(row.mrp, 10) || 0)
+        const originalPrice = mrp > price ? mrp : undefined
 
         await apiFetch('/api/admin/products', {
           method: 'POST',
@@ -1000,17 +1323,22 @@ export default function AdminPage() {
             originalPrice,
             stock,
             inStock: stock > 0,
-            image: row.image || '/images/drone-sentinel-pro.png',
-            images: [row.image || '/images/drone-sentinel-pro.png'],
-            category: row.category || 'Professional Drones',
+            image: primaryImage,
+            images: allImages,
+            category: 'Professional Drones',
             subcategory: 'General',
-            description: row.description,
+            description: row.specification,
+            longDescription: row.specification,
+            specs: {
+              'Base Price': basePrice > 0 ? `₹${basePrice.toLocaleString('en-IN')}` : '—',
+              'Min Stock Qty': String(minStockQty),
+              Specification: row.specification || '—',
+              'Certification Type': row.certificationType || '—',
+            },
+            certificationImage: row.certificationDocument || undefined,
             rating: 4.5,
             reviews: 0,
-            warranty: {
-              ...defaultProductWarranty(),
-              duration: row.warrantyDuration,
-            },
+            warranty: defaultProductWarranty(),
           }),
         })
       }
@@ -1070,9 +1398,14 @@ export default function AdminPage() {
       return
     }
     try {
+      const { role, permissions } = resolveApiRole(
+        newUserForm.role,
+        newUserForm.permissions,
+        customRoles
+      )
       await apiFetch('/api/admin/users', {
         method: 'POST',
-        body: JSON.stringify(newUserForm),
+        body: JSON.stringify({ ...newUserForm, role, permissions }),
       })
       showMsg('User created successfully', 'username')
       setNewUserForm({
@@ -1097,12 +1430,17 @@ export default function AdminPage() {
   const saveUserAccess = async () => {
     if (!editingAccess) return
     try {
+      const { role, permissions } = resolveApiRole(
+        editingAccess.role,
+        editingAccess.permissions,
+        customRoles
+      )
       await apiFetch('/api/admin/users', {
         method: 'PATCH',
         body: JSON.stringify({
           id: editingAccess.id,
-          role: editingAccess.role,
-          permissions: editingAccess.permissions,
+          role,
+          permissions,
         }),
       })
       showMsg('User access updated successfully', 'accessibility')
@@ -1214,6 +1552,7 @@ export default function AdminPage() {
       { id: 'staff-data', label: 'Staff Records', icon: ClipboardList },
       { id: 'messages', label: 'Ticket Generation', icon: Ticket },
       { id: 'customer-chat', label: 'Customer Chat', icon: MessageCircle },
+      { id: 'certification', label: 'Certification', icon: Award },
       { id: 'template', label: 'Edit Template', icon: FileSpreadsheet },
     ] satisfies AdminNavItem[]
   )
@@ -1230,6 +1569,7 @@ export default function AdminPage() {
       if (item.id === 'staff-data') return canViewStaffRecords
       if (item.id === 'messages') return isFullAdmin
       if (item.id === 'customer-chat') return user.role === 'admin' || user.role === 'staff'
+      if (item.id === 'certification') return isFullAdmin
       if (item.id === 'template') return isFullAdmin
       return true
     })
@@ -1303,6 +1643,10 @@ export default function AdminPage() {
                       <AdminTableColumnHeader label="Discounted" highlighted={highlightedColumn === 'discounted'} />
                       <AdminTableColumnHeader label="Discount" highlighted={highlightedColumn === 'discount'} />
                       <AdminTableColumnHeader label="Stock" highlighted={highlightedColumn === 'stock'} />
+                      <AdminTableColumnHeader
+                        label="Minimum Stock Alert"
+                        highlighted={highlightedColumn === 'minStockAlert'}
+                      />
                       <AdminTableColumnHeader label="Status" highlighted={highlightedColumn === 'status'} />
                       <AdminTableColumnHeader label="Actions" highlighted={highlightedColumn === 'actions'} />
                     </tr>
@@ -1310,6 +1654,7 @@ export default function AdminPage() {
                   <tbody>
                     {products.map((p) => {
                       const discount = getDiscountPercent(p)
+                      const minStockAlert = getMinStockAlert(p)
                       return (
                       <tr key={p.id}>
                         <td>
@@ -1332,6 +1677,7 @@ export default function AdminPage() {
                         <td>{formatPrice(p.price)}</td>
                         <td>{discount > 0 ? `${discount}%` : '—'}</td>
                         <td>{p.stock}</td>
+                        <td>{minStockAlert > 0 ? minStockAlert : '—'}</td>
                         <td>{p.inStock ? `In Stock (${p.stock} qty)` : 'Out of Stock'}</td>
                         <td>
                           {canManageInventory ? (
@@ -1522,11 +1868,15 @@ export default function AdminPage() {
                       <label className={styles.formLabel}>Role</label>
                       <RoleDropdown
                         value={editingAccess.role}
-                        onChange={(role) =>
+                        customRoles={customRoles}
+                        onCustomRolesChange={setCustomRoles}
+                        hiddenBuiltInRoles={hiddenBuiltInRoles}
+                        onHiddenBuiltInRolesChange={setHiddenBuiltInRoles}
+                        onChange={(role, permissions) =>
                           setEditingAccess({
                             ...editingAccess,
                             role,
-                            permissions: permissionsForRole(role as 'staff' | 'admin'),
+                            permissions,
                           })
                         }
                       />
@@ -1694,6 +2044,10 @@ export default function AdminPage() {
             />
           )}
 
+          {tab === 'certification' && isFullAdmin && (
+            <CertificationPanel onMessage={showMsg} onError={setError} />
+          )}
+
           {tab === 'template' && isFullAdmin && (
             <>
               <h1 className={styles.pageTitle}>Site Templates</h1>
@@ -1707,6 +2061,7 @@ export default function AdminPage() {
                 onMessage={showMsg}
                 onError={setError}
               />
+              <InvoiceDcTemplatePanel isAdmin={isFullAdmin} />
               <MainTemplatePanel onMessage={showMsg} onError={setError} />
             </>
           )}
@@ -1818,11 +2173,15 @@ export default function AdminPage() {
                     <label className={styles.formLabel}>Role</label>
                     <RoleDropdown
                       value={newUserForm.role}
-                      onChange={(role) =>
+                      customRoles={customRoles}
+                      onCustomRolesChange={setCustomRoles}
+                      hiddenBuiltInRoles={hiddenBuiltInRoles}
+                      onHiddenBuiltInRolesChange={setHiddenBuiltInRoles}
+                      onChange={(role, permissions) =>
                         setNewUserForm({
                           ...newUserForm,
                           role,
-                          permissions: permissionsForRole(role as 'staff' | 'admin'),
+                          permissions,
                         })
                       }
                     />
@@ -1871,10 +2230,24 @@ export default function AdminPage() {
         <ProductBulkEntryModal
           rows={productDraftRows}
           saving={bulkSaving}
-          imageUploading={imageUploading}
+          certDocumentUploading={imageUploading}
           onRowsChange={setProductDraftRows}
-          onImageUpload={handleBulkRowImageUpload}
-          onSave={saveBulkProducts}
+          onCertDocumentUpload={handleBulkCertDocumentUpload}
+          onSave={proceedToBulkImages}
+          onClose={closeProductEditor}
+        />
+      )}
+
+      {bulkImageDrafts && productDraftRows && newProduct && (
+        <ProductBulkImagesModal
+          drafts={bulkImageDrafts}
+          saving={bulkSaving}
+          uploadingRowId={bulkImagesUploadingRowId}
+          onDraftsChange={setBulkImageDrafts}
+          onUploadFiles={handleBulkGalleryUpload}
+          onError={setError}
+          onConfirm={finalizeBulkProducts}
+          onBack={() => setBulkImageDrafts(null)}
           onClose={closeProductEditor}
         />
       )}

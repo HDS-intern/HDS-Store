@@ -1,14 +1,20 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { apiFetch } from '@/lib/api'
 import { isAttendancePresent } from '@/lib/attendanceDisplay'
 import { validateStaffPhotoFile, validateStaffPhotoDataUrl } from '@/lib/staffPhoto'
 import type { StaffAttendance, StaffRecord } from '@/lib/types'
-import { Lock, Plus } from 'lucide-react'
+import { ImagePlus, Lock, Plus, X } from 'lucide-react'
 import { StaffAttendanceCalendarModal } from './StaffAttendanceCalendarModal'
 import { StaffProfileModal } from './StaffProfileModal'
+import { AnimatedFormSelect } from './AnimatedFormSelect'
 import styles from './StaffRecordsPanel.module.css'
+
+const WORK_STATUS_OPTIONS = [
+  { value: 'live', label: 'Live (Active)', hint: 'Currently employed', tone: 'live' as const },
+  { value: 'resigned', label: 'Resigned', hint: 'Employment ended', tone: 'resigned' as const },
+]
 
 const emptyForm = (): Partial<StaffRecord> => ({
   employeeName: '',
@@ -43,6 +49,7 @@ export function StaffRecordsPanel({ onMessage, onError, onStaffCreated }: Props)
   const [isNew, setIsNew] = useState(false)
   const [calendarStaff, setCalendarStaff] = useState<{ id: string; name: string } | null>(null)
   const [profileStaff, setProfileStaff] = useState<StaffRecord | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     try {
@@ -80,6 +87,28 @@ export function StaffRecordsPanel({ onMessage, onError, onStaffCreated }: Props)
   useEffect(() => {
     load()
   }, [load])
+
+  const closeForm = useCallback(() => {
+    setForm(null)
+    setIsNew(false)
+  }, [])
+
+  useEffect(() => {
+    if (!form) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeForm()
+    }
+
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [form, closeForm])
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -195,38 +224,81 @@ export function StaffRecordsPanel({ onMessage, onError, onStaffCreated }: Props)
       </div>
 
       {form && (
-        <div className={styles.formPanel}>
-          <h3 className={styles.formTitle}>{isNew ? 'New Staff Record' : 'Edit Staff Record'}</h3>
-
-          <div className={styles.formSection}>
-            <p className={styles.sectionLabel}>Personal Information</p>
-            <div className={styles.formGrid}>
-              {field('employeeName', 'Employee Name *')}
-              {field('aadhaarNumber', 'Aadhaar Number')}
-              {field('bloodGroup', 'Blood Group')}
-              {field('joiningDate', 'Joining Date', 'date')}
-              <div className="sm:col-span-2">
-                {field('address', 'Address')}
-              </div>
-              <div>
-                <label className={styles.label}>Profile Photo</label>
-                <input
-                  type="file"
-                  accept=".png,.jpg,.jpeg,image/png,image/jpeg"
-                  onChange={handlePhoto}
-                  className={styles.input}
-                />
-                <p className={styles.fieldHint}>PNG or JPG only. Maximum size 2.5 MB.</p>
-                {form.passportPhoto && (
-                  <img
-                    src={form.passportPhoto}
-                    alt="Staff profile"
-                    className={`${styles.photoPreview} mt-2`}
-                  />
-                )}
-              </div>
+        <div
+          className={`${styles.backdrop} ${styles.backdropEnter}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="staff-form-title"
+          onClick={closeForm}
+        >
+          <div
+            className={`${styles.popup} ${styles.popupEnter}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <h2 id="staff-form-title" className={styles.modalTitle}>
+                {isNew ? 'New Staff Record' : 'Edit Staff Record'}
+              </h2>
+              <button type="button" className={styles.closeBtn} onClick={closeForm} aria-label="Close">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-          </div>
+
+            <div className={styles.formBody}>
+              <div className={styles.formSection}>
+                <p className={styles.sectionLabel}>Personal Information</p>
+                <div className={styles.personalInfoRow}>
+                  <div className={styles.photoUploadSection}>
+                    <label className={styles.label}>Profile Photo</label>
+                    <button
+                      type="button"
+                      className={`${styles.photoUploadZone} ${form.passportPhoto ? styles.photoUploadZoneFilled : ''}`}
+                      onClick={() => photoInputRef.current?.click()}
+                      aria-label="Upload profile photo"
+                    >
+                      {form.passportPhoto ? (
+                        <>
+                          <img
+                            src={form.passportPhoto}
+                            alt="Staff profile preview"
+                            className={styles.photoUploadPreview}
+                          />
+                          <span className={styles.photoUploadOverlay}>
+                            <ImagePlus className="w-4 h-4" />
+                            Change
+                          </span>
+                        </>
+                      ) : (
+                        <span className={styles.photoUploadPlaceholder}>
+                          <ImagePlus className="w-5 h-5" />
+                          <span className={styles.photoUploadTitle}>Upload</span>
+                        </span>
+                      )}
+                    </button>
+                    <p className={styles.photoUploadCaption}>Passport size · PNG or JPG · Max 2.5 MB</p>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                      onChange={handlePhoto}
+                      className={styles.hiddenFileInput}
+                      tabIndex={-1}
+                    />
+                  </div>
+
+                  <div className={styles.personalInfoFields}>
+                    <div className={styles.formGrid}>
+                      {field('employeeName', 'Employee Name *')}
+                      {field('aadhaarNumber', 'Aadhaar Number')}
+                      {field('bloodGroup', 'Blood Group')}
+                      {field('joiningDate', 'Joining Date', 'date')}
+                      <div className={styles.fullWidthField}>
+                        {field('address', 'Address')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
           <div className={styles.formSection}>
             <p className={styles.sectionLabel}>Contact Details</p>
@@ -253,25 +325,25 @@ export function StaffRecordsPanel({ onMessage, onError, onStaffCreated }: Props)
             <p className={styles.sectionLabel}>Employment Status</p>
             <div className={styles.formGrid}>
               <div>
-                <label className={styles.label}>Work Status</label>
-                <select
-                  className="hds-select-dark"
+                <label className={styles.label} htmlFor="work-status-select">
+                  Work Status
+                </label>
+                <AnimatedFormSelect
+                  id="work-status-select"
                   value={form.workStatus || 'live'}
-                  onChange={(e) =>
+                  options={WORK_STATUS_OPTIONS}
+                  onChange={(workStatus) =>
                     setForm({
                       ...form,
-                      workStatus: e.target.value as 'live' | 'resigned',
+                      workStatus: workStatus as 'live' | 'resigned',
                     })
                   }
-                >
-                  <option value="live">Live (Active)</option>
-                  <option value="resigned">Resigned</option>
-                </select>
+                />
               </div>
               {form.workStatus === 'resigned' && (
-                <>
+                <div className={styles.revealFields}>
                   {field('resignedDate', 'Resignation Date', 'date')}
-                  <div className="sm:col-span-2">
+                  <div className={styles.fullWidthField}>
                     <label className={styles.label}>Resignation Letter</label>
                     <textarea
                       className={styles.textarea}
@@ -282,7 +354,7 @@ export function StaffRecordsPanel({ onMessage, onError, onStaffCreated }: Props)
                       placeholder="Resignation letter details or reference..."
                     />
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -305,16 +377,11 @@ export function StaffRecordsPanel({ onMessage, onError, onStaffCreated }: Props)
             <button type="button" className={styles.btnPrimary} onClick={save}>
               Save Record
             </button>
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              onClick={() => {
-                setForm(null)
-                setIsNew(false)
-              }}
-            >
+            <button type="button" className={styles.btnSecondary} onClick={closeForm}>
               Cancel
             </button>
+          </div>
+            </div>
           </div>
         </div>
       )}

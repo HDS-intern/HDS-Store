@@ -36,6 +36,13 @@ export function getMaxPrice(product: { price: number; originalPrice?: number }):
   return product.price
 }
 
+export function getMinStockAlert(product: { specs?: Record<string, string> }): number {
+  const raw = product.specs?.['Min Stock Qty']
+  if (raw == null || raw === '' || raw === '—') return 0
+  const parsed = parseInt(String(raw), 10)
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0
+}
+
 export type PricingField = 'max' | 'discount' | 'sale'
 
 export function syncPricingFields(
